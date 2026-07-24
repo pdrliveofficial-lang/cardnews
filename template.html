@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>cardnews render</title>
+<style>
+  :root{
+    --ink:#191C26; --ivory:#F3EFE6; --red:#C8372D; --dim:#8A8FA0; --card-line:#2E3242;
+    --kr:'Pretendard','Malgun Gothic',sans-serif;
+    --serif:'Nanum Myeongjo','Batang',serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ width:1080px; height:1350px; overflow:hidden; font-family:var(--kr); }
+
+  .card{ width:1080px; height:1350px; background:var(--ink); color:var(--ivory); position:relative; overflow:hidden; }
+  .card .bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .card .scrim{ position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(25,28,38,.90) 0%, rgba(25,28,38,.42) 42%, rgba(25,28,38,.55) 62%, rgba(25,28,38,.94) 100%); }
+  .card .inner{ position:absolute; inset:0; padding:92px 97px; display:flex; flex-direction:column; }
+
+  .brand{ display:flex; align-items:center; justify-content:space-between; font-family:var(--serif); }
+  .brand .logo{ font-size:48px; letter-spacing:.22em; }
+  .brand .no{ font-size:39px; letter-spacing:.14em; color:var(--dim); }
+  .rule{ border:0; border-top:2px solid var(--card-line); margin:54px 0; width:100%; }
+
+  .cover-tag{ font-family:var(--serif); color:var(--red); font-size:43px; letter-spacing:.3em; margin-top:97px; }
+  .cover h3{ font-size:99px; line-height:1.32; font-weight:800; letter-spacing:-0.02em; margin:43px 0 0; word-break:keep-all; }
+  .cover em{ color:var(--red); font-style:normal; }
+  .cover-foot{ margin-top:auto; display:flex; align-items:center; justify-content:space-between; color:var(--dim); font-size:41px; }
+  .card.photo .cover-foot{ color:#C9CCD6; }
+  .stamp{ font-family:var(--serif); color:var(--red); border:5px solid var(--red); border-radius:4px;
+    padding:17px 32px; font-size:42px; letter-spacing:.3em; transform:rotate(-6deg); opacity:.92; }
+
+  .mid{ flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0; padding-bottom:40px; }
+  .story-label{ font-family:var(--serif); color:var(--dim); font-size:40px; letter-spacing:.28em; }
+  .story p{ font-size:70px; line-height:1.62; font-weight:600; letter-spacing:-0.01em; margin:54px 0 0; word-break:keep-all; }
+  .story b{ color:#fff; font-weight:800; }
+  .story em{ color:var(--red); font-weight:800; font-style:normal; }
+  .quote{ margin-top:65px; padding:49px 54px; border-left:7px solid var(--red);
+    background:rgba(200,55,45,.08); font-size:65px; line-height:1.58; font-weight:600; word-break:keep-all; }
+  .quote b{ color:#fff; font-weight:800; }
+  .pgnum{ color:var(--dim); font-family:var(--serif); font-size:39px; letter-spacing:.2em; align-self:center; }
+
+  .vs{ display:flex; flex-direction:column; gap:43px; margin-top:65px; }
+  .side{ border:2px solid var(--card-line); padding:49px 54px; border-radius:5px; }
+  .side .who{ font-family:var(--serif); font-size:41px; letter-spacing:.24em; color:var(--dim); margin-bottom:26px; }
+  .side.a .who{ color:var(--ivory); }
+  .side.b{ border-color:rgba(200,55,45,.55); }
+  .side.b .who{ color:var(--red); }
+  .side p{ margin:0; font-size:60px; line-height:1.55; font-weight:700; word-break:keep-all; }
+
+  .card.verdict{ background:var(--ivory); color:var(--ink); }
+  .card.verdict .brand .logo{ color:var(--ink); }
+  .verdict-title{ font-size:97px; font-weight:800; letter-spacing:-0.02em; margin-top:86px; }
+  .verdict-title em{ color:var(--red); font-style:normal; }
+  .choice{ display:flex; gap:43px; margin-top:76px; }
+  .opt{ flex:1; border:6px solid var(--ink); border-radius:5px; padding:54px 43px; text-align:center; }
+  .opt.b{ border-color:var(--red); color:var(--red); }
+  .opt .letter{ font-family:var(--serif); font-size:86px; display:block; margin-bottom:22px; }
+  .opt p{ margin:0; font-size:50px; font-weight:800; line-height:1.45; word-break:keep-all; }
+  .verdict-foot{ margin-top:auto; text-align:center; color:#5A5D6B; font-size:45px; line-height:1.6; font-weight:600; }
+  .verdict-foot b{ color:var(--red); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script id="data" type="application/json">/*__DATA__*/null</script>
+<script>
+  const story = JSON.parse(document.getElementById('data').textContent.replace('/*__DATA__*/',''));
+  const idx = parseInt(new URLSearchParams(location.search).get('card') || '0', 10);
+  const c = story.cards[idx];
+  const total = story.cards.length;
+  const noLabel = story.no_label || '사건';
+  const brand = `<div class="brand"><span class="logo">${story.brand}</span><span class="no">${noLabel} NO.${story.case_no}</span></div><hr class="rule">`;
+  const pg = `<div class="pgnum">${idx + 1} / ${total}</div>`;
+  let html = '';
+  if (c.type === 'cover') {
+    const photo = c.image
+      ? `<img class="bg" src="${c.image}"><div class="scrim"></div>`
+      : '';
+    html = `<div class="card${c.image ? ' photo' : ''}">${photo}<div class="inner cover">${brand}
+      <div class="cover-tag">${c.tag}</div><h3>${c.title}</h3>
+      <div class="cover-foot"><span>${story.swipe_text || '판결하러 넘기기 →'}</span><span class="stamp">${c.stamp}</span></div></div></div>`;
+  } else if (c.type === 'story') {
+    html = `<div class="card"><div class="inner story">${brand}
+      <div class="mid"><div class="story-label">${c.label}</div>${c.paras.map(p => `<p>${p}</p>`).join('')}</div>${pg}</div></div>`;
+  } else if (c.type === 'quote') {
+    html = `<div class="card"><div class="inner story">${brand}
+      <div class="mid"><div class="story-label">${c.label}</div>${c.quotes.map(q => `<div class="quote">${q}</div>`).join('')}</div>${pg}</div></div>`;
+  } else if (c.type === 'vs') {
+    html = `<div class="card"><div class="inner">${brand}
+      <div class="mid"><div class="story-label">${c.label}</div><div class="vs">
+      <div class="side a"><div class="who">${c.a.who}</div><p>${c.a.text}</p></div>
+      <div class="side b"><div class="who">${c.b.who}</div><p>${c.b.text}</p></div></div></div>${pg}</div></div>`;
+  } else if (c.type === 'verdict') {
+    html = `<div class="card verdict"><div class="inner">${brand}
+      <div class="verdict-title">${c.title}</div><div class="choice">
+      <div class="opt a"><span class="letter">A</span><p>${c.a}</p></div>
+      <div class="opt b"><span class="letter">B</span><p>${c.b}</p></div></div>
+      <div class="verdict-foot">${c.foot}</div></div></div>`;
+  }
+  document.getElementById('root').innerHTML = html;
+
+  // 내용이 카드 높이를 넘치면 본문 글자를 단계적으로 줄여 안에 맞춘다
+  const mid = document.querySelector('.mid');
+  if (mid) {
+    const overflows = () => {
+      const els = mid.querySelectorAll('*');
+      const limit = 1350 - 92; // 카드 높이 - 하단 패딩
+      for (const el of els) {
+        if (el.getBoundingClientRect().bottom > limit) return true;
+      }
+      return mid.scrollHeight > mid.clientHeight;
+    };
+    let guard = 0;
+    while (overflows() && guard++ < 14) {
+      mid.querySelectorAll('.story p, .quote, .side p, .side .who').forEach(el => {
+        const fs = parseFloat(getComputedStyle(el).fontSize);
+        el.style.fontSize = (fs * 0.94) + 'px';
+      });
+    }
+  }
+</script>
+</body>
+</html>
