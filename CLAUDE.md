@@ -39,11 +39,21 @@ stories/case-NNN.json  →  python render.py stories/case-NNN.json  →  output/
 
 **업로드 전 반드시 사용자 컨펌.** 흐름: 사연 작성 → PNG 생성 → 사용자에게 보여주기 → OK 받으면 업로드. 컨펌 없이 게시 금지.
 
+## 🤖 자동 발행 (가동 중, 2026-07-25 시작)
+
+- **계정**: @comment.judgee ("댓글판사", 프로페셔널/크리에이터, 팔로워 ~667)
+- **구조**: GitHub 저장소 `pdrliveofficial-lang/cardnews` (공개 — raw URL이 이미지 호스팅) + GitHub Actions `publish.yml`이 **매일 12:00 KST** `upload_instagram.py` 실행 → state.json의 next_case를 캐러셀 발행 후 +1 커밋.
+- **API**: Instagram API with Instagram Login (페이스북 페이지 불필요). Meta 앱 **cardnews-bot** (앱 ID 1013526951312622), Instagram 앱 ID 2450710675398072. comment.judgee는 앱의 Instagram 테스터로 등록·수락됨.
+- **Secrets** (repo secrets): `IG_TOKEN` (장기 토큰, **2026-07-25 발급 → 60일 후 2026-09-22경 만료**), `IG_USER_ID` (17841455934440668).
+- **토큰 갱신**: 만료 전 `GET graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=<현재토큰>` 호출 후 `gh secret set IG_TOKEN --body "<새토큰>"`. (재발급이 필요하면 인증 링크 방식: 리디렉션 URI는 https://github.com/pdrliveofficial-lang/cardnews, 스코프에 instagram_business_content_publish 필수. 시크릿은 Meta 콘솔 > cardnews-bot > Instagram > API 설정에서 표시.)
+- **수동 발행**: `python upload_instagram.py` (env IG_TOKEN/IG_USER_ID 필요) 또는 GitHub Actions workflow_dispatch.
+- 발행 이력: case-001 (2026-07-25 수동 테스트, media 17971311825093729). state.json next_case=2.
+
 ## 대기/진행 중
 
-1. **인스타 계정 개설**: 사용자가 직접 개설 필요 (계정 생성은 Claude가 대행 불가). 이름 1안 "댓글판사".
-2. **업로드 방식 미정**: Graph API 자동화(비즈니스 계정+FB페이지 필요) vs 브라우저 반자동 vs 수동. 계정 개설 후 결정.
-3. **사연 소재 뱅크**: 아직 없음. 추후 stories/ 에 축적.
+1. **사연 소재 뱅크**: case-002~010 재고 있음 (~8/3까지). 소진 전 신규 사연 제작 필요.
+2. **프로필 세팅**: 프로필 사진(로고)·소개문구 미완 — 다음 세션에서 시안 제작 추천.
+3. **댓글 고정 운영**: "가장 공감받은 판결 고정"은 수동 운영 필요 — 추후 반자동화 검토.
 
 ## 작업 규칙
 
