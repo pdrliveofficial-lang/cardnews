@@ -8,7 +8,7 @@
 - **콘셉트**: "댓글로 판결하는 재판" — 사연(AITA 스타일)을 사건번호 붙여 카드 7장으로 풀고, 마지막 장에서 A/B 판결 투표로 댓글 유도.
 - **투 트랙 운영** (2026-07-25부터):
   - **댓글판사** @comment.judgee — 재판 콘셉트(레드), 돈·경조사 갈등 사연. stories/case-*.json, state.json, 매일 12:00 KST 발행.
-  - **잘잘못연구소** — 연구 콘셉트(민트 #2E9E8F, JSON `accent` 필드), 일상·관계 논쟁 사연. stories/lab-*.json, state-lab.json, 매일 19:00 KST 발행(publish-lab.yml). **계정 미개설 — 개설 후 IG_TOKEN_LAB/IG_USER_ID_LAB secrets 등록 필요. secrets 없으면 워크플로는 조용히 스킵.**
+  - **잘잘못연구소** — 보라(#5C4BC4) 스토리형 디자인 **(최종 확정 2026-07-25, 사용자가 claude.ai 디자인 핸드오프로 전달)**. 전용 템플릿 `template-lab.html` (render.py가 lab-* slug면 자동 선택). 인스타 스토리 문법: 진행바 7세그 + 프로필 행(jaljalmot_lab) + 흰 카드 회전 + VS 배지 + A/B 투표카드 + 답장바. 100% CSS(사진 불필요 → 힉스필드 크레딧 0), Pretendard CDN 웹폰트(virtual-time-budget 8000). 디자인 스펙 원본: 사용자 바탕화면 design_handoff_jaljalmot_cardnews/README.md. 일상·관계 논쟁 사연, stories/lab-*.json (cover에 `emoji` 필드), state-lab.json, 매일 19:00 KST 발행(publish-lab.yml). **계정 미개설 — 개설 후 IG_TOKEN_LAB/IG_USER_ID_LAB secrets 등록 필요. secrets 없으면 워크플로는 조용히 스킵.**
 - **콘텐츠 재고**: case-001~010 (댓글판사 10회분) + lab-001~010 (연구소 10회분).
 - **이미지 생성**: 표지는 nano_banana_pro. ⚠️ **CLI 생성은 무료가 아님** — 거래내역 확인 결과 건당 2크레딧 차감 (2026-07-25 확인). 웹 UI의 Unlimited 모드와 달리 CLI/API 생성은 크레딧을 소모함. 장당 2크레딧이라 부담은 작지만 사용자에게 소모량 보고할 것.
 - **전략**: 결혼/축의금 사연 30% 믹스 → 장기적으로 세렌디피티 DVD 사업과 연결.

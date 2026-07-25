@@ -17,7 +17,8 @@ def main(story_path):
     story = json.loads(story_file.read_text(encoding="utf-8"))
     slug = story.get("slug", story_file.stem)
 
-    template = (ROOT / "template.html").read_text(encoding="utf-8")
+    tpl_name = "template-lab.html" if slug.startswith("lab") else "template.html"
+    template = (ROOT / tpl_name).read_text(encoding="utf-8")
     built = template.replace(
         "/*__DATA__*/null", json.dumps(story, ensure_ascii=False)
     )
@@ -34,7 +35,7 @@ def main(story_path):
         cmd = [
             CHROME, "--headless=new", "--disable-gpu",
             "--force-device-scale-factor=1", "--hide-scrollbars",
-            "--window-size=1080,1350", "--virtual-time-budget=3000",
+            "--window-size=1080,1350", "--virtual-time-budget=8000",
             f"--screenshot={png}", url,
         ]
         subprocess.run(cmd, check=True, capture_output=True)
