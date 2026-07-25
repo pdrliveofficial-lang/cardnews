@@ -23,8 +23,8 @@ RAW_BASE = os.environ.get(
     "RAW_BASE",
     "https://raw.githubusercontent.com/pdrliveofficial-lang/cardnews/main",
 )
-TOKEN = os.environ["IG_TOKEN"]
-IG_USER = os.environ["IG_USER_ID"]
+TOKEN = os.environ.get("IG_TOKEN", "")
+IG_USER = os.environ.get("IG_USER_ID", "")
 
 
 def api(method, path, **params):
@@ -49,10 +49,14 @@ def wait_ready(container_id, timeout=180):
 
 
 def main():
-    state_path = ROOT / "state.json"
+    if not TOKEN or not IG_USER:
+        print("IG_TOKEN / IG_USER_ID not set — skipping publish")
+        return
+    state_path = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "state.json")
     state = json.loads(state_path.read_text(encoding="utf-8"))
     n = state["next_case"]
-    slug = f"case-{n:03d}"
+    prefix = state.get("prefix", "case")
+    slug = f"{prefix}-{n:03d}"
     out_dir = ROOT / "output" / slug
     if not out_dir.exists():
         print(f"no content for {slug} — nothing to publish")

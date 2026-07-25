@@ -68,6 +68,7 @@
 <script id="data" type="application/json">/*__DATA__*/null</script>
 <script>
   const story = JSON.parse(document.getElementById('data').textContent.replace('/*__DATA__*/',''));
+  if (story.accent) document.documentElement.style.setProperty('--red', story.accent);
   const idx = parseInt(new URLSearchParams(location.search).get('card') || '0', 10);
   const c = story.cards[idx];
   const total = story.cards.length;
