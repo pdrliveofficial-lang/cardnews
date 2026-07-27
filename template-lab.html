@@ -85,7 +85,7 @@
   const idx = parseInt(new URLSearchParams(location.search).get('card') || '0', 10);
   const c = story.cards[idx];
   const total = story.cards.length;
-  const handle = story.handle || 'jaljalmot_lab';
+  const handle = story.handle || 'jaljalmot.lap';
 
   const progress = '<div class="progress">' +
     Array.from({length: total}, (_, i) => `<div class="${i <= idx ? 'on' : ''}"></div>`).join('') + '</div>';
