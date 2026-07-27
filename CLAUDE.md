@@ -45,7 +45,8 @@ stories/case-NNN.json  →  python render.py stories/case-NNN.json  →  output/
 ## 🤖 자동 발행 (가동 중, 2026-07-25 시작)
 
 - **계정**: @comment.judgee ("댓글판사", 프로페셔널/크리에이터, 팔로워 ~667)
-- **구조**: GitHub 저장소 `pdrliveofficial-lang/cardnews` (공개 — raw URL이 이미지 호스팅) + GitHub Actions `publish.yml`이 **매일 12:00 KST** `upload_instagram.py` 실행 → state.json의 next_case를 캐러셀 발행 후 +1 커밋.
+- **구조**: GitHub 저장소 `pdrliveofficial-lang/cardnews` (공개 — raw URL이 이미지 호스팅) + GitHub Actions `publish.yml`이 `upload_instagram.py` 실행 → state.json의 next_case를 캐러셀 발행 후 +1 커밋.
+- **⚠️ 스케줄 방식 (2026-07-27 수정)**: GitHub 무료 cron이 최대 수 시간 지연됨(실측 6~10시간). 대응책: 20분 간격 다중 트리거(판사 02:00-04:40 UTC, 연구소 10:00-12:40 UTC) + 스크립트의 `last_published` 날짜 가드(KST)로 하루 1회 보장. 그래도 지연되면 셀프호스트 러너나 외부 스케줄러 검토.
 - **API**: Instagram API with Instagram Login (페이스북 페이지 불필요). Meta 앱 **cardnews-bot** (앱 ID 1013526951312622), Instagram 앱 ID 2450710675398072. comment.judgee는 앱의 Instagram 테스터로 등록·수락됨.
 - **Secrets** (repo secrets): `IG_TOKEN` (장기 토큰, **2026-07-25 발급 → 60일 후 2026-09-22경 만료**), `IG_USER_ID` (17841455934440668).
 - **토큰 갱신**: 만료 전 `GET graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=<현재토큰>` 호출 후 `gh secret set IG_TOKEN --body "<새토큰>"`. (재발급이 필요하면 인증 링크 방식: 리디렉션 URI는 https://github.com/pdrliveofficial-lang/cardnews, 스코프에 instagram_business_content_publish 필수. 시크릿은 Meta 콘솔 > cardnews-bot > Instagram > API 설정에서 표시.)
