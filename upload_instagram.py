@@ -9,6 +9,7 @@ env:
   IG_USER_ID  : Instagram professional account user id
   RAW_BASE    : (optional) raw image URL base
 """
+import datetime
 import json
 import os
 import pathlib
@@ -16,6 +17,8 @@ import sys
 import time
 
 import requests
+
+KST = datetime.timezone(datetime.timedelta(hours=9))
 
 API = "https://graph.instagram.com/v23.0"
 ROOT = pathlib.Path(__file__).parent
@@ -54,6 +57,10 @@ def main():
         return
     state_path = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "state.json")
     state = json.loads(state_path.read_text(encoding="utf-8"))
+    today = datetime.datetime.now(KST).strftime("%Y-%m-%d")
+    if state.get("last_published") == today:
+        print(f"already published today ({today}) — skipping")
+        return
     n = state["next_case"]
     prefix = state.get("prefix", "case")
     slug = f"{prefix}-{n:03d}"
@@ -85,6 +92,7 @@ def main():
     print(f"published {slug}: media id {published['id']}")
 
     state["next_case"] = n + 1
+    state["last_published"] = today
     state_path.write_text(
         json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
     )
