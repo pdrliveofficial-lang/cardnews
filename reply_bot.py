@@ -61,25 +61,34 @@ def gen_reply(post_text, comment_text, username, kind):
         f"[사연 원글]\n{post_text[:400]}\n\n"
         f"[{username}님의 댓글]\n{comment_text[:300]}\n\n답글:"
     )
-    try:
-        r = requests.post(
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            "gemini-flash-latest:generateContent",
-            params={"key": GEMINI_KEY},
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-            timeout=40,
-        )
-        if not r.ok:
-            print(f"gemini failed: {r.text[:200]}")
+    # 503(일시적 과부하)은 흔하므로 지수 백오프로 재시도한다.
+    for attempt in range(3):
+        try:
+            r = requests.post(
+                "https://generativelanguage.googleapis.com/v1beta/models/"
+                "gemini-flash-latest:generateContent",
+                params={"key": GEMINI_KEY},
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=40,
+            )
+            if not r.ok:
+                print(f"gemini failed ({r.status_code}, try {attempt + 1}): {r.text[:150]}")
+                if r.status_code in (429, 500, 503) and attempt < 2:
+                    time.sleep(5 * (attempt + 1))
+                    continue
+                return None
+            txt = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+            txt = txt.strip('"').strip()
+            if not txt or "SKIP" in txt.upper():
+                return None
+            return txt[:180]
+        except Exception as e:
+            print(f"gemini error (try {attempt + 1}): {e}")
+            if attempt < 2:
+                time.sleep(5 * (attempt + 1))
+                continue
             return None
-        txt = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-        txt = txt.strip('"').strip()
-        if not txt or "SKIP" in txt.upper():
-            return None
-        return txt[:180]
-    except Exception as e:
-        print(f"gemini error: {e}")
-        return None
+    return None
 
 
 def publish_reply(token, user_id, text, reply_to):
