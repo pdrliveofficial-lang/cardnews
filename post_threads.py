@@ -84,17 +84,8 @@ def main(slug):
     if not root_id:
         return
     print(f"threads published {slug}: {root_id}")
-
-    # 인스타 유도는 본문이 아니라 셀프 답글로. 문구도 자연스럽게.
-    default_reply = (
-        "이런 사연들 카드뉴스로도 모으는 중이에요 → 인스타 @jaljalmot.lap"
-        if lab else
-        "이런 판결 사연 카드뉴스로도 모으는 중 → 인스타 @comment.judgee"
-    )
-    reply = story.get("threads_reply") or default_reply
-    time.sleep(3)
-    rid = create_and_publish(user_id, token, reply, reply_to=root_id)
-    print(f"self-reply: {rid}")
+    # 셀프 홍보 답글은 달지 않는다 (티가 나서 역효과 — 2026-08-02 사용자 지시).
+    # 유입은 프로필/본문 톤으로만. 필요 시 사람이 직접 반응 보고 답글.
 
 
 if __name__ == "__main__":
