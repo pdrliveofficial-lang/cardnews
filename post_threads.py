@@ -65,10 +65,11 @@ def create_and_publish(user_id, token, text, image=None, reply_to=None):
 
 
 def main(slug):
-    token = os.environ.get("THREADS_TOKEN_JUDGE", "")
-    user_id = os.environ.get("THREADS_USER_ID_JUDGE", "")
+    lab = slug.startswith("lab")
+    token = os.environ.get("THREADS_TOKEN_LAB" if lab else "THREADS_TOKEN_JUDGE", "")
+    user_id = os.environ.get("THREADS_USER_ID_LAB" if lab else "THREADS_USER_ID_JUDGE", "")
     if not token or not user_id:
-        print("THREADS_TOKEN_JUDGE not set — skip threads post")
+        print("threads token not set — skip threads post")
         return
 
     story_path = ROOT / "stories" / f"{slug}.json"
@@ -85,9 +86,12 @@ def main(slug):
     print(f"threads published {slug}: {root_id}")
 
     # 인스타 유도는 본문이 아니라 셀프 답글로. 문구도 자연스럽게.
-    reply = story.get("threads_reply") or (
-        "이 사연 카드뉴스로도 정리해뒀어요. 다른 판결 사연 궁금하면 인스타 @comment.judgee 🙏"
+    default_reply = (
+        "이런 사연들 카드뉴스로도 모으는 중이에요 → 인스타 @jaljalmot.lap"
+        if lab else
+        "이런 판결 사연 카드뉴스로도 모으는 중 → 인스타 @comment.judgee"
     )
+    reply = story.get("threads_reply") or default_reply
     time.sleep(3)
     rid = create_and_publish(user_id, token, reply, reply_to=root_id)
     print(f"self-reply: {rid}")

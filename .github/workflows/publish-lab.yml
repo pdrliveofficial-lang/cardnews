@@ -55,9 +55,18 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID_LAB }}
         run: python upload_instagram.py state-lab.json
 
+      - name: Cross-post to Threads
+        if: steps.claim.outputs.r == 'CLAIMED'
+        continue-on-error: true
+        env:
+          THREADS_TOKEN_LAB: ${{ secrets.THREADS_TOKEN_LAB }}
+          THREADS_USER_ID_LAB: ${{ secrets.THREADS_USER_ID_LAB }}
+        run: python post_threads.py "$(cat last_slug.txt)"
+
       - name: Commit state
         if: steps.claim.outputs.r == 'CLAIMED'
         run: |
+          rm -f last_slug.txt
           git add state-lab.json
           git diff --cached --quiet || git commit -m "state-lab: advance next_case [skip ci]"
           git pull --rebase origin main
