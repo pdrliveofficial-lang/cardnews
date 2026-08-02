@@ -55,6 +55,11 @@ stories/case-NNN.json  →  python render.py stories/case-NNN.json  →  output/
 - **수동 발행**: `python upload_instagram.py` (env IG_TOKEN/IG_USER_ID 필요) 또는 GitHub Actions workflow_dispatch.
 - 발행 이력: case-001 (2026-07-25 수동 테스트, media 17971311825093729). state.json next_case=2.
 
+## 🎯 다음 작업 (2026-07-30 사용자 결정)
+
+1. **댓글판사 콘셉트 전환 → 연애 재판**: case-021부터 소재를 연애·부부 갈등(연애 싸움 포인트, 이혼·불륜 사연 등)으로 전환. 기존 007~020 큐는 그대로 소진. **가드레일 필수**: 성별 대결 프레임 금지(성별 뒤집어도 성립하는 사연으로), 실존 인물·사건 연상 금지, 자극은 사연 내용으로만(제목 낚시 금지). 재판 콘셉트와 시너지 — "연애 재판소" 방향.
+2. **스레드 교차 발행**: 발행 워크플로에 Threads 게시 단계 추가 — 사연 훅 2~3줄 + 표지 이미지 + "판결은 인스타에서" 유도. comment.judgee의 스레드 프로필 활성화 + threads-bot 앱(1714194796572628)에 계정 연결 + THREADS_TOKEN_JUDGE 시크릿 필요 (인증 링크 방식, threads-bot CLAUDE.md 참조). story JSON에 `threads` 필드(스레드용 짧은 글) 추가, 없으면 캡션 앞부분 재사용.
+
 ## 대기/진행 중
 
 1. **사연 소재 뱅크**: case-002~010 재고 있음 (~8/3까지). 소진 전 신규 사연 제작 필요.
