@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-"""스레드 네이티브 '썰' 게시 — 본문에서 기승전결 완결, 인스타 유도는 셀프 답글로.
+"""스레드 네이티브 '썰' 게시 — 본문에서 기승전결 완결. 홍보 답글 없음.
 
-usage: python post_threads.py <slug>   예: python post_threads.py case-007
-env: THREADS_TOKEN_JUDGE / THREADS_USER_ID_JUDGE (없으면 조용히 스킵)
+usage:
+  python post_threads.py <slug>        # 카드뉴스 사연 1편 게시 (발행 워크플로에서 호출)
+  python post_threads.py --pool judge  # 스레드 전용 썰 풀에서 1편 게시 (아침/저녁 슬롯)
+env: THREADS_TOKEN_JUDGE/LAB, THREADS_USER_ID_JUDGE/LAB
 """
+import datetime
 import json
 import os
 import pathlib
@@ -15,10 +18,7 @@ import requests
 
 API = "https://graph.threads.net/v1.0"
 ROOT = pathlib.Path(__file__).parent
-RAW_BASE = os.environ.get(
-    "RAW_BASE",
-    "https://raw.githubusercontent.com/pdrliveofficial-lang/cardnews/main",
-)
+KST = datetime.timezone(datetime.timedelta(hours=9))
 
 
 def strip_tags(s):
@@ -26,7 +26,6 @@ def strip_tags(s):
 
 
 def fallback_text(story):
-    """threads 필드가 없을 때만 쓰는 최소 버전 — 1인칭 썰 톤."""
     cards = story["cards"]
     body = []
     for c in cards:
@@ -41,21 +40,20 @@ def fallback_text(story):
     return "\n".join(lines)
 
 
-def create_and_publish(user_id, token, text, image=None, reply_to=None):
-    params = {"text": text, "access_token": token}
-    if image:
-        params["media_type"] = "IMAGE"
-        params["image_url"] = image
-    else:
-        params["media_type"] = "TEXT"
-    if reply_to:
-        params["reply_to_id"] = reply_to
-    r = requests.post(f"{API}/{user_id}/threads", params=params, timeout=60)
+def creds(lab):
+    suffix = "LAB" if lab else "JUDGE"
+    return (os.environ.get(f"THREADS_TOKEN_{suffix}", ""),
+            os.environ.get(f"THREADS_USER_ID_{suffix}", ""))
+
+
+def publish(user_id, token, text):
+    r = requests.post(f"{API}/{user_id}/threads", params={
+        "media_type": "TEXT", "text": text, "access_token": token}, timeout=60)
     if not r.ok:
         print(f"create failed: {r.text[:300]}")
         return None
     cid = r.json()["id"]
-    time.sleep(30 if image else 10)
+    time.sleep(10)
     p = requests.post(f"{API}/{user_id}/threads_publish", params={
         "creation_id": cid, "access_token": token}, timeout=60)
     if not p.ok:
@@ -64,29 +62,57 @@ def create_and_publish(user_id, token, text, image=None, reply_to=None):
     return p.json()["id"]
 
 
-def main(slug):
+def post_from_pool(kind, slot):
+    """threads_pool_<kind>.json 에서 다음 썰 1편 게시. slot별 하루 1회 가드."""
+    lab = kind == "lab"
+    token, user_id = creds(lab)
+    if not token or not user_id:
+        print("threads token not set — skip")
+        return
+    pool_path = ROOT / f"threads_pool_{kind}.json"
+    if not pool_path.exists():
+        print(f"no pool file for {kind}")
+        return
+    pool = json.loads(pool_path.read_text(encoding="utf-8"))
+    today = datetime.datetime.now(KST).strftime("%Y-%m-%d")
+    posted = pool.setdefault("posted", {})
+    if posted.get(slot) == today:
+        print(f"{kind}/{slot} already posted today — skip")
+        return
+    items = pool.get("items", [])
+    idx = pool.get("next", 0)
+    if idx >= len(items):
+        print(f"pool exhausted ({kind}) — 신규 썰 충전 필요")
+        return
+    # 선점: 게시 전에 먼저 기록해 중복 트리거를 막는다
+    posted[slot] = today
+    pool["next"] = idx + 1
+    pool_path.write_text(json.dumps(pool, ensure_ascii=False, indent=2), encoding="utf-8")
+    mid = publish(user_id, token, items[idx])
+    print(f"pool post {kind}/{slot} #{idx}: {mid}")
+
+
+def post_from_story(slug):
     lab = slug.startswith("lab")
-    token = os.environ.get("THREADS_TOKEN_LAB" if lab else "THREADS_TOKEN_JUDGE", "")
-    user_id = os.environ.get("THREADS_USER_ID_LAB" if lab else "THREADS_USER_ID_JUDGE", "")
+    token, user_id = creds(lab)
     if not token or not user_id:
         print("threads token not set — skip threads post")
         return
-
     story_path = ROOT / "stories" / f"{slug}.json"
     if not story_path.exists():
         print(f"no story for {slug}")
         return
     story = json.loads(story_path.read_text(encoding="utf-8"))
-
     text = story.get("threads") or fallback_text(story)
-    # 본문은 텍스트 온리 — 스레드에서 이미지는 '홍보물' 느낌을 주고 이탈을 부른다.
-    root_id = create_and_publish(user_id, token, text)
-    if not root_id:
-        return
-    print(f"threads published {slug}: {root_id}")
-    # 셀프 홍보 답글은 달지 않는다 (티가 나서 역효과 — 2026-08-02 사용자 지시).
-    # 유입은 프로필/본문 톤으로만. 필요 시 사람이 직접 반응 보고 답글.
+    mid = publish(user_id, token, text)
+    if mid:
+        print(f"threads published {slug}: {mid}")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "")
+    args = sys.argv[1:]
+    if args and args[0] == "--pool":
+        post_from_pool(args[1] if len(args) > 1 else "judge",
+                       args[2] if len(args) > 2 else "extra")
+    else:
+        post_from_story(args[0] if args else "")

@@ -1,0 +1,70 @@
+name: threads-extra
+
+on:
+  schedule:
+    # 아침 슬롯 08:00 KST(23:00 UTC) / 저녁 슬롯 21:00 KST(12:00 UTC)
+    # GitHub cron 지연 대비 각 슬롯 3회 트리거 — 하루 1회는 pool의 posted 가드가 보장.
+    - cron: "0,30 23 * * *"
+    - cron: "0 0 * * *"
+    - cron: "0,30 12 * * *"
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "morning | evening"
+        required: false
+        default: "morning"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: threads-extra
+  cancel-in-progress: false
+
+jobs:
+  extra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+
+      - name: Decide slot
+        id: slot
+        run: |
+          H=$(date -u +%H)
+          if [ -n "${{ github.event.inputs.slot }}" ]; then
+            S="${{ github.event.inputs.slot }}"
+          elif [ "$H" = "23" ] || [ "$H" = "00" ]; then
+            S=morning
+          else
+            S=evening
+          fi
+          echo "s=$S" >> "$GITHUB_OUTPUT"
+          echo "slot=$S"
+
+      - name: Judge extra post
+        continue-on-error: true
+        env:
+          THREADS_TOKEN_JUDGE: ${{ secrets.THREADS_TOKEN_JUDGE }}
+          THREADS_USER_ID_JUDGE: ${{ secrets.THREADS_USER_ID_JUDGE }}
+        run: python post_threads.py --pool judge ${{ steps.slot.outputs.s }}
+
+      - name: Lab extra post
+        continue-on-error: true
+        env:
+          THREADS_TOKEN_LAB: ${{ secrets.THREADS_TOKEN_LAB }}
+          THREADS_USER_ID_LAB: ${{ secrets.THREADS_USER_ID_LAB }}
+        run: python post_threads.py --pool lab ${{ steps.slot.outputs.s }}
+
+      - name: Commit pool state
+        run: |
+          git config user.name "cardnews-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add threads_pool_*.json
+          git diff --cached --quiet || git commit -m "threads pool: advance [skip ci]"
+          git pull --rebase origin main
+          git push
