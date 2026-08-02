@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""카드뉴스 발행과 함께 스레드에 훅 글 게시 (인스타 유입 유도).
+"""스레드 네이티브 '썰' 게시 — 본문에서 기승전결 완결, 인스타 유도는 셀프 답글로.
 
 usage: python post_threads.py <slug>   예: python post_threads.py case-007
-env: THREADS_TOKEN_JUDGE (없으면 조용히 스킵)
+env: THREADS_TOKEN_JUDGE / THREADS_USER_ID_JUDGE (없으면 조용히 스킵)
 """
 import json
 import os
@@ -25,19 +25,43 @@ def strip_tags(s):
     return re.sub(r"<[^>]+>", "", s).replace("&nbsp;", " ").strip()
 
 
-def build_text(story):
-    """story JSON의 threads 필드 우선, 없으면 표지·투표 카드로 훅 생성."""
-    if story.get("threads"):
-        return story["threads"]
-    cover = story["cards"][0]
-    verdict = next((c for c in story["cards"] if c["type"] == "verdict"), None)
-    title = strip_tags(cover["title"].replace("<br>", " "))
-    lines = [title, ""]
+def fallback_text(story):
+    """threads 필드가 없을 때만 쓰는 최소 버전 — 1인칭 썰 톤."""
+    cards = story["cards"]
+    body = []
+    for c in cards:
+        if c["type"] == "story":
+            body += [strip_tags(p) for p in c["paras"]]
+        elif c["type"] == "quote":
+            body += [strip_tags(q) for q in c["quotes"]]
+    verdict = next((c for c in cards if c["type"] == "verdict"), None)
+    lines = body[:5]
     if verdict:
-        lines += [f"🅰️ {verdict['a']}", f"🅱️ {verdict['b']}", ""]
-    lines.append("당신의 판결은? 댓글로 남겨주세요 ⚖️")
-    lines.append("전체 사연은 프로필 링크(인스타)에서 👉 @comment.judgee")
+        lines.append(f"이거 {strip_tags(verdict['a'])} vs {strip_tags(verdict['b'])}, 어느 쪽이에요?")
     return "\n".join(lines)
+
+
+def create_and_publish(user_id, token, text, image=None, reply_to=None):
+    params = {"text": text, "access_token": token}
+    if image:
+        params["media_type"] = "IMAGE"
+        params["image_url"] = image
+    else:
+        params["media_type"] = "TEXT"
+    if reply_to:
+        params["reply_to_id"] = reply_to
+    r = requests.post(f"{API}/{user_id}/threads", params=params, timeout=60)
+    if not r.ok:
+        print(f"create failed: {r.text[:300]}")
+        return None
+    cid = r.json()["id"]
+    time.sleep(30 if image else 10)
+    p = requests.post(f"{API}/{user_id}/threads_publish", params={
+        "creation_id": cid, "access_token": token}, timeout=60)
+    if not p.ok:
+        print(f"publish failed: {p.text[:300]}")
+        return None
+    return p.json()["id"]
 
 
 def main(slug):
@@ -52,26 +76,21 @@ def main(slug):
         print(f"no story for {slug}")
         return
     story = json.loads(story_path.read_text(encoding="utf-8"))
-    text = build_text(story)
-    image = f"{RAW_BASE}/output/{slug}/01.png"
 
-    create = requests.post(f"{API}/{user_id}/threads", params={
-        "media_type": "IMAGE", "image_url": image, "text": text,
-        "access_token": token,
-    }, timeout=60)
-    if not create.ok:
-        print(f"threads create failed: {create.text[:300]}")
+    text = story.get("threads") or fallback_text(story)
+    # 본문은 텍스트 온리 — 스레드에서 이미지는 '홍보물' 느낌을 주고 이탈을 부른다.
+    root_id = create_and_publish(user_id, token, text)
+    if not root_id:
         return
-    cid = create.json()["id"]
-    time.sleep(30)  # 컨테이너 처리 대기 (공식 권장)
+    print(f"threads published {slug}: {root_id}")
 
-    pub = requests.post(f"{API}/{user_id}/threads_publish", params={
-        "creation_id": cid, "access_token": token,
-    }, timeout=60)
-    if pub.ok:
-        print(f"threads published {slug}: {pub.json()}")
-    else:
-        print(f"threads publish failed: {pub.text[:300]}")
+    # 인스타 유도는 본문이 아니라 셀프 답글로. 문구도 자연스럽게.
+    reply = story.get("threads_reply") or (
+        "이 사연 카드뉴스로도 정리해뒀어요. 다른 판결 사연 궁금하면 인스타 @comment.judgee 🙏"
+    )
+    time.sleep(3)
+    rid = create_and_publish(user_id, token, reply, reply_to=root_id)
+    print(f"self-reply: {rid}")
 
 
 if __name__ == "__main__":
