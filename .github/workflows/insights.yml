@@ -19,3 +19,10 @@ jobs:
           IG_TOKEN_LAB: ${{ secrets.IG_TOKEN_LAB }}
           IG_USER_ID_LAB: ${{ secrets.IG_USER_ID_LAB }}
         run: python insights.py
+      - name: Fetch threads insights
+        env:
+          THREADS_TOKEN_JUDGE: ${{ secrets.THREADS_TOKEN_JUDGE }}
+          THREADS_USER_ID_JUDGE: ${{ secrets.THREADS_USER_ID_JUDGE }}
+          THREADS_TOKEN_LAB: ${{ secrets.THREADS_TOKEN_LAB }}
+          THREADS_USER_ID_LAB: ${{ secrets.THREADS_USER_ID_LAB }}
+        run: python threads_insights.py
