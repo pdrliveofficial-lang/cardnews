@@ -91,6 +91,7 @@ def main():
     published = api("POST", f"{IG_USER}/media_publish", creation_id=carousel["id"])
     print(f"published {slug}: media id {published['id']}")
 
+    pathlib.Path(ROOT / "last_slug.txt").write_text(slug, encoding="utf-8")
     state["next_case"] = n + 1
     state["last_published"] = today
     state_path.write_text(
