@@ -1,0 +1,49 @@
+name: reply-bot
+
+on:
+  schedule:
+    # 09:00~23:00 KST 사이 2시간 간격 (UTC 0,2,4,...,14)
+    - cron: "0 0,2,4,6,8,10,12,14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reply-bot
+  cancel-in-progress: false
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+
+      - name: Reply — judge
+        continue-on-error: true
+        env:
+          THREADS_TOKEN_JUDGE: ${{ secrets.THREADS_TOKEN_JUDGE }}
+          THREADS_USER_ID_JUDGE: ${{ secrets.THREADS_USER_ID_JUDGE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python reply_bot.py judge
+
+      - name: Reply — lab
+        continue-on-error: true
+        env:
+          THREADS_TOKEN_LAB: ${{ secrets.THREADS_TOKEN_LAB }}
+          THREADS_USER_ID_LAB: ${{ secrets.THREADS_USER_ID_LAB }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python reply_bot.py lab
+
+      - name: Commit replied state
+        run: |
+          git config user.name "cardnews-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add replied_*.json
+          git diff --cached --quiet || git commit -m "reply: update replied ids [skip ci]"
+          git pull --rebase origin main
+          git push
