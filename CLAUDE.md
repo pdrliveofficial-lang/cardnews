@@ -77,6 +77,13 @@ stories/case-NNN.json  →  python render.py stories/case-NNN.json  →  output/
    - ⚠️ **스레드 웹에는 계정 전환·추가가 없다**(로그아웃뿐). 반면 **인스타 웹에는 계정 전환이 있고**(햄버거 > 계정 전환) jaljalmot.lap / comment.judgee / serendi_pity_ / carrot_matketer 세션이 저장돼 있어 비밀번호 없이 전환 가능 — 인스타 쪽 작업은 이 경로를 쓸 것.
    - **판사 스레드 로그인 시 한 번에 처리할 잔여 작업 2건**: ①bio 입력(위 문구) ②위시리스트 글에 남은 셀프 홍보 답글 삭제.
 
+## 세션 기록 2026-08-03 (맥)
+
+- **맥 클론 확인**: `/Users/2026_유훈희/개인자료/_Ai/Main_treads/cardnews` — Windows PC 없이도 GitHub 중심으로 전 작업 가능 확인.
+- reply.yml 수동 dispatch → 새 답글 4건 (판사 위시리스트 글 댓글들), 누적 판사 21/연구소 1. GitHub cron 지연 시 이렇게 수동 트리거하면 즉시 처리됨.
+- 노션 프로젝트 대시보드에 cardnews 페이지·현황 행 추가됨.
+- 참고: 같은 날 양재꽃언니(@serendist.log, threads-bot/flower_actions) 가동 시작 — 계정군이 3개(결혼봇·꽃언니·판사/연구소)가 됨. 토큰 만료 캘린더: 9/18 결혼봇 · 9/22 IG판사 · 9/25 IG연구소 · 10/1 스레드판사/연구소 · 10/2 꽃언니.
+
 ## 대기/진행 중 (2026-08-02 기준 — 다음 세션 시작점)
 
 **재고 (소진일)**
