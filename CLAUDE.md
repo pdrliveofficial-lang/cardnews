@@ -82,6 +82,7 @@ stories/case-NNN.json  →  python render.py stories/case-NNN.json  →  output/
 - **맥 클론 확인**: `/Users/2026_유훈희/개인자료/_Ai/Main_treads/cardnews` — Windows PC 없이도 GitHub 중심으로 전 작업 가능 확인.
 - reply.yml 수동 dispatch → 새 답글 4건 (판사 위시리스트 글 댓글들), 누적 판사 21/연구소 1. GitHub cron 지연 시 이렇게 수동 트리거하면 즉시 처리됨.
 - 노션 프로젝트 대시보드에 cardnews 페이지·현황 행 추가됨.
+- **reply-bot 429 버그 수정 (8/3)**: 사용자가 "대댓글이 제대로 안 되는 것 같다" 신고 → 원인 = Gemini 무료 쿼터 429인데 재시도 간격(5~15s)이 분당 쿼터 리셋(60s)보다 짧아 전부 skip. 수정: ①429 재시도 40/80s 대기 ②AI 연속 3회 실패부터 FALLBACK 템플릿 답글(무응답 방치 방지) ③SKIP 판정은 replied 기록해 영구 제외. ⚠️ 같은 GEMINI_API_KEY를 threads-bot(결혼봇+꽃언니, 30분 주기)과 공유하므로 쿼터 경쟁 있음 — 429 잦아지면 cardnews용 별도 키 발급 검토.
 - 참고: 같은 날 양재꽃언니(@serendist.log, threads-bot/flower_actions) 가동 시작 — 계정군이 3개(결혼봇·꽃언니·판사/연구소)가 됨. 토큰 만료 캘린더: 9/18 결혼봇 · 9/22 IG판사 · 9/25 IG연구소 · 10/1 스레드판사/연구소 · 10/2 꽃언니.
 
 ## 대기/진행 중 (2026-08-02 기준 — 다음 세션 시작점)
