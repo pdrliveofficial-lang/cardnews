@@ -74,13 +74,16 @@ def gen_reply(post_text, comment_text, username, kind):
             if not r.ok:
                 print(f"gemini failed ({r.status_code}, try {attempt + 1}): {r.text[:150]}")
                 if r.status_code in (429, 500, 503) and attempt < 2:
-                    time.sleep(5 * (attempt + 1))
+                    # 429는 분당 쿼터 초과 — 리셋 주기(60초)를 넘겨 재시도해야 의미가 있다
+                    time.sleep(40 * (attempt + 1) if r.status_code == 429 else 5 * (attempt + 1))
                     continue
                 return None
             txt = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
             txt = txt.strip('"').strip()
-            if not txt or "SKIP" in txt.upper():
+            if not txt:
                 return None
+            if "SKIP" in txt.upper():
+                return "SKIP"  # 욕설/정치 등 답글 부적합 판정 — 폴백도 쓰지 않음
             return txt[:180]
         except Exception as e:
             print(f"gemini error (try {attempt + 1}): {e}")
@@ -130,6 +133,7 @@ def main(kind):
         return
 
     done = 0
+    ai_fails = 0  # 연속 AI 실패 카운터 (3회부터 폴백 답글로 전환)
     for th in threads["data"]:
         replies = api_get(token, f"/{th['id']}/replies",
                           {"fields": "id,text,username"})
@@ -144,10 +148,22 @@ def main(kind):
                 continue
             text = gen_reply(th.get("text", ""), rep.get("text", "") or "",
                              rep.get("username", ""), kind)
-            if not text:
-                # AI 없거나 스킵 판정 → 이번엔 넘기고 다음 실행에 재시도
-                print(f"skip {rid} (no ai reply)")
+            if text == "SKIP":
+                # 욕설/정치 등 답글 부적합 — 기록하고 영구 제외
+                print(f"skip {rid} (ai judged SKIP)")
+                replied.add(rid)
                 continue
+            if not text:
+                # AI 실패(쿼터 등). 연속 실패가 쌓이면 이번 실행은 폴백으로 전환해
+                # 댓글이 무한정 무응답으로 남는 걸 막는다.
+                ai_fails += 1
+                if ai_fails >= 3:
+                    text = random.choice(FALLBACK)
+                    print(f"fallback reply for {rid}")
+                else:
+                    print(f"skip {rid} (no ai reply, retry next run)")
+                    time.sleep(10)  # 쿼터 회복 시간을 벌어준다
+                    continue
             mid = publish_reply(token, user_id, text, rid)
             print(f"reply to @{rep.get('username')} -> {mid}: {text}")
             replied.add(rid)
