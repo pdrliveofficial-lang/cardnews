@@ -37,6 +37,9 @@ jobs:
 
       - run: pip install requests
 
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
       - name: Resolve target (account / slug / guards)
         id: t
         run: |
