@@ -10,6 +10,12 @@
   - **댓글판사** @comment.judgee — 재판 콘셉트(레드), 돈·경조사 갈등 사연. stories/case-*.json, state.json, 매일 12:00 KST 발행.
   - **잘잘못연구소** — 보라(#5C4BC4) 스토리형 디자인 **(최종 확정 2026-07-25, 사용자가 claude.ai 디자인 핸드오프로 전달)**. 전용 템플릿 `template-lab.html` (render.py가 lab-* slug면 자동 선택). 인스타 스토리 문법: 진행바 7세그 + 프로필 행(jaljalmot_lab) + 흰 카드 회전 + VS 배지 + A/B 투표카드 + 답장바. 100% CSS(사진 불필요 → 힉스필드 크레딧 0), Pretendard CDN 웹폰트(virtual-time-budget 8000). 디자인 스펙 원본: 사용자 바탕화면 design_handoff_jaljalmot_cardnews/README.md. 일상·관계 논쟁 사연, stories/lab-*.json (cover에 `emoji` 필드), state-lab.json, 매일 19:00 KST 발행(publish-lab.yml). **계정: @jaljalmot.lap (연결 완료 2026-07-27)** — IG_USER_ID_LAB=17841445123080452, IG_TOKEN_LAB은 2026-07-27 발급(60일, ~9/24 만료). lab-001은 7/27 수동 테스트 발행 완료, lab-002부터 자동.
 - **콘텐츠 재고**: case-001~020 + lab-001~020 (2026-07-28 20세트 충전, 각 ~8/12·8/14 소진 예정).
+- **웹툰 릴스 (2026-08-04 구축, 카드 릴스 대체 실험)**: 사연을 웹툰 상황컷 8~10컷 + 말풍선 티키타카로 재구성한 릴스. 사용자 지시: "상황을 보여주고 티키타카 형식, 대사도, 웹툰처럼".
+  - 파이프라인: ①nano_banana_pro로 컷 생성(등장인물 묘사 고정으로 일관성 유지, 이미지 속 글자 금지) ②`assets/<slug>/toon/dialogue.json`에 컷 순서·자막·말풍선 대사 정의 ③`make_reel_toon2.py <slug>`가 PIL로 말풍선(흰 박스+꼬리+화자 배지) 직접 합성 → ffmpeg 줌인+크로스페이드+BGM → `output/<slug>/reel-toon.mp4`.
+  - 컷 공식: 상황 2~3(자막) → 대화 4(말풍선 A↔B) → 반전/증거 1 → 판결컷(공유: 판사=법봉 `assets/case-012/toon/06.png`, 연구소=돋보기, 각 toon 폴더에 99.png로 복사).
+  - **publish-reel.yml이 `reel-toon.mp4` 우선 사용** (reel.mp4 없을 때 복사 후 발행) — 재고: case-012~016, lab-008~012 커밋됨(~8/8까지 웹툰판으로 나감). 소스 PNG는 용량 문제로 .gitignore (로컬 D:에만 보관).
+  - ⚠️ ffmpeg 함정: PNG 입력에 `-framerate 30` 명시 필수 — 기본 25fps가 zoompan(fps=30)과 어긋나면 세그먼트가 짧아져 xfade 체인이 무너지고 영상이 3초에서 얼어붙음(2026-08-04 실사고).
+  - 정시 발행: Windows 작업 `cardnews-reel-judge`(18:00) / `cardnews-reel-lab`(21:10) → `%USERPROFILE%\.cardnews\reel-*.cmd` dispatch.
 - **릴스 자동화 (2026-08-04 구축)**: 낮 캐러셀과 같은 사연을 저녁에 릴스로 재발행해 비팔로워 도달 확보 (정적 카드는 비팔로워에게 안 뿌려지는 문제의 처방 ①).
   - `make_reel.py`: output/<slug>/ 카드 PNG → 9:16 mp4 (블러 배경+중앙 카드+표지 줌인+0.4s 페이드, 카드 7장≈17초). ffmpeg 필요 (Actions에서 apt 설치).
   - BGM: `assets/bgm/judge.m4a`(재판 긴장 로파이)·`lab.m4a`(마림바) — 힉스필드 sonilo_music 생성, 저작권 프리.
