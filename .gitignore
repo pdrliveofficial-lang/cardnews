@@ -1,3 +1,10 @@
 build/
 __pycache__/
 last_slug.txt
+
+# toon reel source images (large, local only)
+assets/*/toon/*.png
+assets/*/toon/composed/
+assets/*/toon/jobs*.txt
+output/*/preview-strip*.png
+output/*/reel-toon-preview.gif

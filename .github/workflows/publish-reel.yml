@@ -71,6 +71,17 @@ jobs:
         if: steps.t.outputs.go != 'skip'
         run: |
           SLUG="${{ steps.t.outputs.slug }}"
+          # 웹툰판(reel-toon.mp4)이 커밋돼 있으면 카드 릴스 대신 그걸 발행 (A/B 실험 트랙)
+          if [ -f "output/$SLUG/reel-toon.mp4" ] && [ ! -f "output/$SLUG/reel.mp4" ]; then
+            cp "output/$SLUG/reel-toon.mp4" "output/$SLUG/reel.mp4"
+            git config user.name "cardnews-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git pull --rebase origin main
+            git add "output/$SLUG/reel.mp4"
+            git commit -m "reel: $SLUG (toon) [skip ci]"
+            git push
+            sleep 10
+          fi
           if [ -f "output/$SLUG/reel.mp4" ]; then
             echo "reel.mp4 already exists — reuse"
           else
