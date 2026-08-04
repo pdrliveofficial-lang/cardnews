@@ -10,6 +10,12 @@
   - **댓글판사** @comment.judgee — 재판 콘셉트(레드), 돈·경조사 갈등 사연. stories/case-*.json, state.json, 매일 12:00 KST 발행.
   - **잘잘못연구소** — 보라(#5C4BC4) 스토리형 디자인 **(최종 확정 2026-07-25, 사용자가 claude.ai 디자인 핸드오프로 전달)**. 전용 템플릿 `template-lab.html` (render.py가 lab-* slug면 자동 선택). 인스타 스토리 문법: 진행바 7세그 + 프로필 행(jaljalmot_lab) + 흰 카드 회전 + VS 배지 + A/B 투표카드 + 답장바. 100% CSS(사진 불필요 → 힉스필드 크레딧 0), Pretendard CDN 웹폰트(virtual-time-budget 8000). 디자인 스펙 원본: 사용자 바탕화면 design_handoff_jaljalmot_cardnews/README.md. 일상·관계 논쟁 사연, stories/lab-*.json (cover에 `emoji` 필드), state-lab.json, 매일 19:00 KST 발행(publish-lab.yml). **계정: @jaljalmot.lap (연결 완료 2026-07-27)** — IG_USER_ID_LAB=17841445123080452, IG_TOKEN_LAB은 2026-07-27 발급(60일, ~9/24 만료). lab-001은 7/27 수동 테스트 발행 완료, lab-002부터 자동.
 - **콘텐츠 재고**: case-001~020 + lab-001~020 (2026-07-28 20세트 충전, 각 ~8/12·8/14 소진 예정).
+- **릴스 자동화 (2026-08-04 구축)**: 낮 캐러셀과 같은 사연을 저녁에 릴스로 재발행해 비팔로워 도달 확보 (정적 카드는 비팔로워에게 안 뿌려지는 문제의 처방 ①).
+  - `make_reel.py`: output/<slug>/ 카드 PNG → 9:16 mp4 (블러 배경+중앙 카드+표지 줌인+0.4s 페이드, 카드 7장≈17초). ffmpeg 필요 (Actions에서 apt 설치).
+  - BGM: `assets/bgm/judge.m4a`(재판 긴장 로파이)·`lab.m4a`(마림바) — 힉스필드 sonilo_music 생성, 저작권 프리.
+  - `upload_instagram_reel.py`: REELS API 발행. 커버=01.png, share_to_feed=false(그리드 중복 방지). 가드: last_published==오늘(캐러셀 후속 원칙) + last_reel 중복 방지.
+  - `publish-reel.yml`: 판사 18:00·연구소 21:00 KST. mp4는 Actions에서 생성 후 저장소 커밋(raw URL 호스팅). dispatch `slug=case-011` 입력 시 미리보기 생성만(발행 안 함).
+  - ⚠️ **GitHub cron 미작동 이슈**: 2026-08-04 판사 낮 캐러셀 cron이 아예 안 옴 → 수동 dispatch로 복구. threads-bot처럼 cron-job.org 외부 트리거 전환 검토할 것.
 - **노출 인사이트 (2026-07-28 실측)**: 판사 도달 14~24/게시물(팔로워 665의 3% — 재활용 계정의 휴면 팔로워가 원인 추정), 저장·공유 0. 처방 우선순위: ①릴스 자동화(카드→슬라이드 영상) ②마지막 카드 저장 유도 문구 ③댓글 씨딩·고정 운영 ④스레드 교차 홍보. insights.yml workflow_dispatch로 재조회 가능.
 - **이미지 생성**: 표지는 nano_banana_pro. ⚠️ **CLI 생성은 무료가 아님** — 거래내역 확인 결과 건당 2크레딧 차감 (2026-07-25 확인). 웹 UI의 Unlimited 모드와 달리 CLI/API 생성은 크레딧을 소모함. 장당 2크레딧이라 부담은 작지만 사용자에게 소모량 보고할 것.
 - **전략**: 결혼/축의금 사연 30% 믹스 → 장기적으로 세렌디피티 DVD 사업과 연결.
