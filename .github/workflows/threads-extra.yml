@@ -35,16 +35,18 @@ jobs:
       - name: Decide slot
         id: slot
         run: |
-          H=$(date -u +%H)
+          # KST 기준 판정 — GitHub cron이 몇 시간 지연돼도 슬롯이 안 바뀌게.
+          # (UTC 시각으로 판정하면 지연된 아침 cron이 evening으로 오분류됨: 2026-08-04 실사고)
+          H=$(TZ=Asia/Seoul date +%H)
           if [ -n "${{ github.event.inputs.slot }}" ]; then
             S="${{ github.event.inputs.slot }}"
-          elif [ "$H" = "23" ] || [ "$H" = "00" ]; then
+          elif [ "$H" -ge 5 ] && [ "$H" -lt 15 ]; then
             S=morning
           else
             S=evening
           fi
           echo "s=$S" >> "$GITHUB_OUTPUT"
-          echo "slot=$S"
+          echo "slot=$S (KST hour=$H)"
 
       - name: Judge extra post
         continue-on-error: true
