@@ -1,0 +1,99 @@
+name: publish-reel
+
+on:
+  schedule:
+    # 판사: 18:00/18:20 KST — 낮 캐러셀과 같은 사연을 릴스로 재발행 (비팔로워 도달)
+    - cron: "0,20 9 * * *"
+    # 연구소: 21:00/21:20 KST — 19시 캐러셀 후속
+    - cron: "0,20 12 * * *"
+  workflow_dispatch:
+    inputs:
+      account:
+        description: "계정 (미지정 시 시간대로 자동 판별)"
+        type: choice
+        options: ["", "judge", "lab"]
+        default: ""
+      slug:
+        description: "특정 slug 릴스만 생성 (미리보기 — 발행 안 함)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-reel
+  cancel-in-progress: false
+
+jobs:
+  reel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests
+
+      - name: Resolve target (account / slug / guards)
+        id: t
+        run: |
+          python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import datetime, json
+          acct = "${{ inputs.account }}".strip()
+          if not acct:
+              h = datetime.datetime.utcnow().hour
+              acct = "lab" if h >= 11 else "judge"
+          state_file = "state-lab.json" if acct == "lab" else "state.json"
+          st = json.load(open(state_file))
+          today = (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).strftime("%Y-%m-%d")
+          slug_in = "${{ inputs.slug }}".strip()
+          if slug_in:
+              print(f"slug={slug_in}\nacct={acct}\nstate={state_file}\ngo=preview")
+          elif st.get("last_reel") == today:
+              print("go=skip")
+              print("reason=오늘 릴스 이미 발행됨")
+          elif st.get("last_published") != today:
+              print("go=skip")
+              print("reason=오늘 캐러셀 미발행 (릴스는 캐러셀 후속)")
+          else:
+              slug = f"{st.get('prefix', 'case')}-{st['next_case'] - 1:03d}"
+              print(f"slug={slug}\nacct={acct}\nstate={state_file}\ngo=publish")
+          EOF
+          echo "resolved: $(cat "$GITHUB_OUTPUT" | tail -4)"
+
+      - name: Build reel mp4 (ffmpeg) and commit
+        if: steps.t.outputs.go != 'skip'
+        run: |
+          SLUG="${{ steps.t.outputs.slug }}"
+          if [ -f "output/$SLUG/reel.mp4" ]; then
+            echo "reel.mp4 already exists — reuse"
+          else
+            python make_reel.py "$SLUG"
+            git config user.name "cardnews-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git pull --rebase origin main
+            git add "output/$SLUG/reel.mp4"
+            git commit -m "reel: $SLUG [skip ci]"
+            git push
+            sleep 10  # raw.githubusercontent 반영 대기
+          fi
+
+      - name: Publish reel to Instagram
+        if: steps.t.outputs.go == 'publish'
+        env:
+          IG_TOKEN: ${{ steps.t.outputs.acct == 'lab' && secrets.IG_TOKEN_LAB || secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ steps.t.outputs.acct == 'lab' && secrets.IG_USER_ID_LAB || secrets.IG_USER_ID }}
+        run: python upload_instagram_reel.py "${{ steps.t.outputs.state }}"
+
+      - name: Commit state
+        if: steps.t.outputs.go == 'publish'
+        run: |
+          git config user.name "cardnews-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add "${{ steps.t.outputs.state }}"
+          git diff --cached --quiet || git commit -m "state: last_reel [skip ci]"
+          git pull --rebase origin main
+          git push
