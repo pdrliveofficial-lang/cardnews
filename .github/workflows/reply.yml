@@ -1,9 +1,6 @@
 name: reply-bot
 
 on:
-  schedule:
-    # 09:00~23:00 KST 사이 2시간 간격 (UTC 0,2,4,...,14)
-    - cron: "0 0,2,4,6,8,10,12,14 * * *"
   workflow_dispatch:
 
 permissions:

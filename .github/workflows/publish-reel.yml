@@ -1,11 +1,6 @@
 name: publish-reel
 
 on:
-  schedule:
-    # 판사: 18:00/18:20 KST — 낮 캐러셀과 같은 사연을 릴스로 재발행 (비팔로워 도달)
-    - cron: "0,20 9 * * *"
-    # 연구소: 21:00/21:20 KST — 19시 캐러셀 후속
-    - cron: "0,20 12 * * *"
   workflow_dispatch:
     inputs:
       account:

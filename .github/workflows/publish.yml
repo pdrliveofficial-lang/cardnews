@@ -1,10 +1,6 @@
 name: publish-cardnews
 
 on:
-  schedule:
-    # 11:00~13:40 KST 사이 20분 간격 다중 트리거 — GitHub cron 지연 대응.
-    # 하루 1회 발행은 선점(claim) 커밋 + last_published 가드가 보장.
-    - cron: "0,20,40 2-4 * * *"
   workflow_dispatch:
 
 permissions:
