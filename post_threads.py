@@ -46,9 +46,18 @@ def creds(lab):
             os.environ.get(f"THREADS_USER_ID_{suffix}", ""))
 
 
-def publish(user_id, token, text):
-    r = requests.post(f"{API}/{user_id}/threads", params={
-        "media_type": "TEXT", "text": text, "access_token": token}, timeout=60)
+def publish(user_id, token, text, poll=None):
+    """poll={"a":"예","b":"아니요"} 형태면 스레드 설문(24시간 자동 종료) 첨부."""
+    params = {"media_type": "TEXT", "text": text, "access_token": token}
+    if poll:
+        params["poll_attachment"] = json.dumps(
+            {"option_a": poll["a"], "option_b": poll["b"]}, ensure_ascii=False)
+    r = requests.post(f"{API}/{user_id}/threads", params=params, timeout=60)
+    if not r.ok and poll:
+        # 설문 파라미터가 거부되면 설문 없이 본문만이라도 나가게 한다
+        print(f"poll attach failed: {r.text[:200]} — retry without poll")
+        params.pop("poll_attachment")
+        r = requests.post(f"{API}/{user_id}/threads", params=params, timeout=60)
     if not r.ok:
         print(f"create failed: {r.text[:300]}")
         return None
@@ -88,7 +97,11 @@ def post_from_pool(kind, slot):
     posted[slot] = today
     pool["next"] = idx + 1
     pool_path.write_text(json.dumps(pool, ensure_ascii=False, indent=2), encoding="utf-8")
-    mid = publish(user_id, token, items[idx])
+    item = items[idx]
+    if isinstance(item, dict):  # {"text":..., "poll":{"a","b"}} 형태 (제보 프레임 + 설문)
+        mid = publish(user_id, token, item["text"], item.get("poll"))
+    else:
+        mid = publish(user_id, token, item)
     print(f"pool post {kind}/{slot} #{idx}: {mid}")
 
 
@@ -104,7 +117,7 @@ def post_from_story(slug):
         return
     story = json.loads(story_path.read_text(encoding="utf-8"))
     text = story.get("threads") or fallback_text(story)
-    mid = publish(user_id, token, text)
+    mid = publish(user_id, token, text, story.get("threads_poll"))
     if mid:
         print(f"threads published {slug}: {mid}")
 

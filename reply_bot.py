@@ -7,7 +7,6 @@ env: THREADS_TOKEN_*, THREADS_USER_ID_*, GEMINI_API_KEY(선택)
 import json
 import os
 import pathlib
-import random
 import sys
 import time
 
@@ -35,14 +34,6 @@ GUIDE = """규칙:
 - 상대 의견에 맞장구치거나 가볍게 되묻기. 판결을 단정하지 말 것.
 - 욕설/비방/정치 댓글이면 답글 대신 정확히 SKIP 이라고만 출력."""
 
-FALLBACK = [
-    "이 사연은 진짜 반응이 갈리네요 ㅋㅋ",
-    "오 그 관점은 생각 못 했어요!",
-    "댓글 보니 저도 다시 고민되네요 🤔",
-    "그쵸... 저도 그 부분이 제일 걸렸어요.",
-]
-
-
 def api_get(token, path, params=None):
     p = dict(params or {})
     p["access_token"] = token
@@ -61,36 +52,39 @@ def gen_reply(post_text, comment_text, username, kind):
         f"[사연 원글]\n{post_text[:400]}\n\n"
         f"[{username}님의 댓글]\n{comment_text[:300]}\n\n답글:"
     )
-    # 503(일시적 과부하)은 흔하므로 지수 백오프로 재시도한다.
-    for attempt in range(3):
-        try:
-            r = requests.post(
-                "https://generativelanguage.googleapis.com/v1beta/models/"
-                "gemini-flash-latest:generateContent",
-                params={"key": GEMINI_KEY},
-                json={"contents": [{"parts": [{"text": prompt}]}]},
-                timeout=40,
-            )
-            if not r.ok:
-                print(f"gemini failed ({r.status_code}, try {attempt + 1}): {r.text[:150]}")
-                if r.status_code in (429, 500, 503) and attempt < 2:
-                    # 429는 분당 쿼터 초과 — 리셋 주기(60초)를 넘겨 재시도해야 의미가 있다
-                    time.sleep(40 * (attempt + 1) if r.status_code == 429 else 5 * (attempt + 1))
+    # 429(무료 쿼터 소진)는 재시도해도 소용없다 — 즉시 쿼터가 넉넉한 보조 모델로 넘어간다.
+    # 5xx(일시 과부하)만 같은 모델에서 짧게 재시도.
+    for model in ("gemini-flash-latest", "gemini-flash-lite-latest"):
+        for attempt in range(2):
+            try:
+                r = requests.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{model}:generateContent",
+                    params={"key": GEMINI_KEY},
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                    timeout=40,
+                )
+                if not r.ok:
+                    print(f"gemini {model} failed ({r.status_code}, try {attempt + 1})")
+                    if r.status_code == 429:
+                        break  # 다음 모델로
+                    if r.status_code in (500, 503) and attempt == 0:
+                        time.sleep(6)
+                        continue
+                    break
+                txt = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                txt = txt.strip('"').strip()
+                if not txt:
+                    return None
+                if "SKIP" in txt.upper():
+                    return "SKIP"  # 욕설/정치 등 답글 부적합 판정
+                return txt[:180]
+            except Exception as e:
+                print(f"gemini {model} error (try {attempt + 1}): {e}")
+                if attempt == 0:
+                    time.sleep(6)
                     continue
-                return None
-            txt = r.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-            txt = txt.strip('"').strip()
-            if not txt:
-                return None
-            if "SKIP" in txt.upper():
-                return "SKIP"  # 욕설/정치 등 답글 부적합 판정 — 폴백도 쓰지 않음
-            return txt[:180]
-        except Exception as e:
-            print(f"gemini error (try {attempt + 1}): {e}")
-            if attempt < 2:
-                time.sleep(5 * (attempt + 1))
-                continue
-            return None
+                break
     return None
 
 
@@ -133,7 +127,7 @@ def main(kind):
         return
 
     done = 0
-    ai_fails = 0  # 연속 AI 실패 카운터 (3회부터 폴백 답글로 전환)
+    ai_fails = 0  # 연속 AI 실패 카운터 — 5회면 쿼터 소진으로 보고 실행 종료
     for th in threads["data"]:
         replies = api_get(token, f"/{th['id']}/replies",
                           {"fields": "id,text,username"})
@@ -154,16 +148,15 @@ def main(kind):
                 replied.add(rid)
                 continue
             if not text:
-                # AI 실패(쿼터 등). 연속 실패가 쌓이면 이번 실행은 폴백으로 전환해
-                # 댓글이 무한정 무응답으로 남는 걸 막는다.
+                # AI 실패(쿼터 등) — 매크로 문구로 때우지 않는다 (2026-08-06 사용자 지시:
+                # "준비된 답변만 달면 안 되지"). 다음 실행에서 진짜 답변으로 재시도.
                 ai_fails += 1
-                if ai_fails >= 3:
-                    text = random.choice(FALLBACK)
-                    print(f"fallback reply for {rid}")
-                else:
-                    print(f"skip {rid} (no ai reply, retry next run)")
-                    time.sleep(10)  # 쿼터 회복 시간을 벌어준다
-                    continue
+                print(f"skip {rid} (no ai reply, retry next run)")
+                if ai_fails >= 5:
+                    print("AI 연속 실패 5회 — 쿼터 소진으로 보고 이번 실행 종료")
+                    break
+                continue
+            ai_fails = 0
             mid = publish_reply(token, user_id, text, rid)
             print(f"reply to @{rep.get('username')} -> {mid}: {text}")
             replied.add(rid)
@@ -171,7 +164,7 @@ def main(kind):
             time.sleep(6)
             if done >= 25:      # 한 번 실행에 25개 상한 (스팸 방지)
                 break
-        if done >= 25:
+        if done >= 25 or ai_fails >= 5:
             break
 
     if len(replied) != before:
