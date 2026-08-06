@@ -1,19 +1,12 @@
 name: threads-extra
 
 on:
-  schedule:
-    # 아침 슬롯 08:00 KST(23:00 UTC) / 저녁 슬롯 21:00 KST(12:00 UTC)
-    # GitHub cron 지연 대비 각 슬롯 3회 트리거 — 하루 1회는 pool의 posted 가드가 보장.
-    - cron: "0,30 23 * * *"
-    - cron: "0 0 * * *"
-    - cron: "0,30 12 * * *"
-    - cron: "0 13 * * *"
   workflow_dispatch:
     inputs:
       slot:
         description: "morning | evening"
         required: false
-        default: "morning"
+        default: ""  # 비우면 KST 시각으로 자동 판정 (cron-job.org 트리거용)
 
 permissions:
   contents: write
