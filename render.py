@@ -4,12 +4,22 @@
 Usage: python render.py stories/case-001.json
 """
 import json
+import os
 import pathlib
 import subprocess
 import sys
 
-CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 ROOT = pathlib.Path(__file__).parent
+
+# 크롬 실행 파일 — 맥/윈도우 겸용 (환경변수 CHROME_BIN으로 강제 지정 가능)
+_CANDIDATES = [
+    os.environ.get("CHROME_BIN", ""),
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    "/usr/bin/google-chrome",
+]
+CHROME = next((c for c in _CANDIDATES if c and pathlib.Path(c).exists()), _CANDIDATES[2])
 
 
 def main(story_path):
