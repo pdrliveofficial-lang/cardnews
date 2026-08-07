@@ -3,13 +3,26 @@
 > 인스타그램 카드뉴스 계정용 콘텐츠 제작 파이프라인. 세렌디피티(threads-bot)와 별개 프로젝트지만 같은 사용자.
 > 작업 방식이 바뀌면 이 문서도 업데이트할 것.
 
+## 🚀 새 컴퓨터에서 시작하는 법
+
+Claude Code에 아래 한 문장만 입력하면 됩니다:
+
+```
+깃허브 pdrliveofficial-lang/cardnews 클론해서 CLAUDE.md 읽고 이어서 작업해줘
+```
+
+- 필요한 것: `gh` CLI 로그인(`gh auth login`), Python 3.12 + `pip install requests`, 카드 렌더 시 Google Chrome(경로 자동 감지, 필요하면 `CHROME_BIN` 환경변수로 지정), 릴스 제작 시 ffmpeg.
+- **토큰·시크릿은 저장소에 없다** — 전부 GitHub repo secrets에 있고 발행은 GitHub Actions에서 실행되므로, 새 컴퓨터에 토큰을 세팅할 필요가 없다. 로컬은 콘텐츠 작성·렌더 전용.
+- **발행 트리거도 외부(cron-job.org)에 있다** — 로컬 컴퓨터를 꺼도 발행은 계속된다. 즉석 발행이 필요하면 `gh workflow run <워크플로>.yml`.
+- 작업 후에는 반드시 커밋·푸시 (GitHub 저장소가 운영 원본이자 이미지 호스팅이다).
+
 ## 개요
 
 - **콘셉트**: "댓글로 판결하는 재판" — 사연(AITA 스타일)을 사건번호 붙여 카드 7장으로 풀고, 마지막 장에서 A/B 판결 투표로 댓글 유도.
 - **투 트랙 운영** (2026-07-25부터):
   - **댓글판사** @comment.judgee — 재판 콘셉트(레드), 돈·경조사 갈등 사연. stories/case-*.json, state.json, 매일 12:00 KST 발행.
   - **잘잘못연구소** — 보라(#5C4BC4) 스토리형 디자인 **(최종 확정 2026-07-25, 사용자가 claude.ai 디자인 핸드오프로 전달)**. 전용 템플릿 `template-lab.html` (render.py가 lab-* slug면 자동 선택). 인스타 스토리 문법: 진행바 7세그 + 프로필 행(jaljalmot_lab) + 흰 카드 회전 + VS 배지 + A/B 투표카드 + 답장바. 100% CSS(사진 불필요 → 힉스필드 크레딧 0), Pretendard CDN 웹폰트(virtual-time-budget 8000). 디자인 스펙 원본: 사용자 바탕화면 design_handoff_jaljalmot_cardnews/README.md. 일상·관계 논쟁 사연, stories/lab-*.json (cover에 `emoji` 필드), state-lab.json, 매일 19:00 KST 발행(publish-lab.yml). **계정: @jaljalmot.lap (연결 완료 2026-07-27)** — IG_USER_ID_LAB=17841445123080452, IG_TOKEN_LAB은 2026-07-27 발급(60일, ~9/24 만료). lab-001은 7/27 수동 테스트 발행 완료, lab-002부터 자동.
-- **콘텐츠 재고**: case-001~020 + lab-001~020 (2026-07-28 20세트 충전, 각 ~8/12·8/14 소진 예정).
+- **콘텐츠 재고 (2026-08-07 충전)**: 카드뉴스 case-001~028 · lab-001~023 (양쪽 **~8/21** 소진 예정), 스레드풀 judge 40편 · lab 38편 (**~8/21**). 재고는 `state.json`/`state-lab.json`의 `next_case`와 `threads_pool_*.json`의 `next`로 확인.
 - **웹툰 릴스 (2026-08-04 구축, 카드 릴스 대체 실험)**: 사연을 웹툰 상황컷 8~10컷 + 말풍선 티키타카로 재구성한 릴스. 사용자 지시: "상황을 보여주고 티키타카 형식, 대사도, 웹툰처럼".
   - 파이프라인: ①nano_banana_pro로 컷 생성(등장인물 묘사 고정으로 일관성 유지, 이미지 속 글자 금지) ②`assets/<slug>/toon/dialogue.json`에 컷 순서·자막·말풍선 대사 정의 ③`make_reel_toon2.py <slug>`가 PIL로 말풍선(흰 박스+꼬리+화자 배지) 직접 합성 → ffmpeg 줌인+크로스페이드+BGM → `output/<slug>/reel-toon.mp4`.
   - 컷 공식: 상황 2~3(자막) → 대화 4(말풍선 A↔B) → 반전/증거 1 → 판결컷(공유: 판사=법봉 `assets/case-012/toon/06.png`, 연구소=돋보기, 각 toon 폴더에 99.png로 복사).
