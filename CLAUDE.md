@@ -21,7 +21,13 @@
   - BGM: `assets/bgm/judge.m4a`(재판 긴장 로파이)·`lab.m4a`(마림바) — 힉스필드 sonilo_music 생성, 저작권 프리.
   - `upload_instagram_reel.py`: REELS API 발행. 커버=01.png, share_to_feed=false(그리드 중복 방지). 가드: last_published==오늘(캐러셀 후속 원칙) + last_reel 중복 방지.
   - `publish-reel.yml`: 판사 18:00·연구소 21:00 KST. mp4는 Actions에서 생성 후 저장소 커밋(raw URL 호스팅). dispatch `slug=case-011` 입력 시 미리보기 생성만(발행 안 함).
-  - ⚠️ **GitHub cron 미작동 이슈**: 2026-08-04 판사 낮 캐러셀 cron이 아예 안 옴 → 수동 dispatch로 복구. threads-bot처럼 cron-job.org 외부 트리거 전환 검토할 것.
+  - ~~GitHub cron 미작동 이슈~~ → **2026-08-07 해결: GitHub 자체 schedule 전면 제거, cron-job.org 외부 트리거 단일 체제로 전환** (아래 표 참조).
+
+- **⏰ 발행 트리거 = cron-job.org 전담 (2026-08-07 전환)**: GitHub 무료 요금제 cron이 수 시간씩 지연되거나 아예 안 오는 문제로, 모든 워크플로에서 `on: schedule`을 삭제하고 `workflow_dispatch`만 남겼다. 외부에서 GitHub API를 때려 깨우는 방식(threads-bot과 동일).
+  - 계정: cron-job.org / pdrlive.official@gmail.com. 인증은 fine-grained PAT **"cron-trigger"**(threads-bot + cardnews 접근 권한, 만료 없음)가 cron-job.org에 저장돼 있음.
+  - 등록된 트리거 (KST): **08:05 스레드 아침글**(threads-extra) · **12:03 판사 캐러셀**(publish) · **18:03 판사 릴스**(publish-reel) · **19:03 연구소 캐러셀**(publish-lab) · **21:02 스레드 저녁글**(threads-extra) · **21:08 연구소 릴스**(publish-reel) · **답글봇 2시간마다**(reply, 09~23시 홀수시 05분)
+  - ⚠️ **워크플로에 `on: schedule`을 다시 추가하지 말 것.** 지연 도착한 cron이 claim(선점 잠금)만 해놓고 죽으면 그날 발행이 통째로 결측된다 (2026-08-06 연구소 실사고).
+  - 새 트리거 추가 방법: cron-job.org 콘솔에서 기존 잡을 **Clone** → URL의 워크플로 파일명과 crontab만 수정 → Enable job → Save (토큰이 그대로 복제돼 재입력 불필요).
 - **노출 인사이트 (2026-07-28 실측)**: 판사 도달 14~24/게시물(팔로워 665의 3% — 재활용 계정의 휴면 팔로워가 원인 추정), 저장·공유 0. 처방 우선순위: ①릴스 자동화(카드→슬라이드 영상) ②마지막 카드 저장 유도 문구 ③댓글 씨딩·고정 운영 ④스레드 교차 홍보. insights.yml workflow_dispatch로 재조회 가능.
 - **이미지 생성**: 표지는 nano_banana_pro. ⚠️ **CLI 생성은 무료가 아님** — 거래내역 확인 결과 건당 2크레딧 차감 (2026-07-25 확인). 웹 UI의 Unlimited 모드와 달리 CLI/API 생성은 크레딧을 소모함. 장당 2크레딧이라 부담은 작지만 사용자에게 소모량 보고할 것.
 - **전략**: 결혼/축의금 사연 30% 믹스 → 장기적으로 세렌디피티 DVD 사업과 연결.
