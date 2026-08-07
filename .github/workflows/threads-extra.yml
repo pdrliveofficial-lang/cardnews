@@ -3,6 +3,10 @@ name: threads-extra
 on:
   workflow_dispatch:
     inputs:
+      force:
+        description: "하루 1회 가드 무시 (테스트용)"
+        type: boolean
+        default: false
       slot:
         description: "morning | evening"
         required: false
@@ -46,14 +50,14 @@ jobs:
         env:
           THREADS_TOKEN_JUDGE: ${{ secrets.THREADS_TOKEN_JUDGE }}
           THREADS_USER_ID_JUDGE: ${{ secrets.THREADS_USER_ID_JUDGE }}
-        run: python post_threads.py --pool judge ${{ steps.slot.outputs.s }}
+        run: python post_threads.py --pool judge ${{ steps.slot.outputs.s }} ${{ inputs.force == true && '--force' || '' }}
 
       - name: Lab extra post
         continue-on-error: true
         env:
           THREADS_TOKEN_LAB: ${{ secrets.THREADS_TOKEN_LAB }}
           THREADS_USER_ID_LAB: ${{ secrets.THREADS_USER_ID_LAB }}
-        run: python post_threads.py --pool lab ${{ steps.slot.outputs.s }}
+        run: python post_threads.py --pool lab ${{ steps.slot.outputs.s }} ${{ inputs.force == true && '--force' || '' }}
 
       - name: Commit pool state
         run: |
