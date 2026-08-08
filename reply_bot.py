@@ -27,6 +27,38 @@ PERSONA = {
     ),
 }
 
+# -- 팔로우 유도 (2026-08-08 사용자 지시) --
+# 매 답글마다 붙이면 매크로 티가 나고 스팸으로 읽힌다 → CTA_EVERY 회마다 1번만,
+# 문구를 돌려가며 붙인다. 답글 본문은 AI가 쓴 그대로 두고 CTA는 줄바꿈 후 추가.
+CTA_EVERY = 4
+CTA = {
+    "judge": [
+        "이런 사건 더 보시려면 팔로우 해두세요 ⚖️",
+        "매일 낮 12시에 새 사건 올라와요, 팔로우하고 같이 판결해주세요!",
+        "제보 사연 더 있어요 — 팔로우하고 보러 오세요 👀",
+        "다음 재판도 궁금하시면 팔로우요!",
+    ],
+    "lab": [
+        "이런 사연 더 보시려면 팔로우 해두세요 🔍",
+        "매일 저녁 7시에 새 사건 파일 열려요, 팔로우하고 같이 판정해주세요!",
+        "애매한 사건 더 모으는 중이에요 — 팔로우하고 보러 오세요 👀",
+        "다음 연구도 궁금하시면 팔로우요!",
+    ],
+}
+
+
+def add_cta(text, kind, n):
+    """n번째 답글이 CTA 차례면 팔로우 유도 한 줄을 덧붙인다."""
+    if n % CTA_EVERY != 0:
+        return text
+    lines = CTA.get(kind) or []
+    if not lines:
+        return text
+    cta = lines[(n // CTA_EVERY - 1) % len(lines)]
+    merged = f"{text}\n{cta}"
+    return merged if len(merged) <= 240 else text
+
+
 GUIDE = """규칙:
 - 반말체 금지, 친근한 해요체. 1~2문장, 40자 내외로 짧게.
 - 댓글 내용에 실제로 반응할 것. 복붙 느낌 금지.
@@ -189,6 +221,7 @@ def main(kind, audit=False, cap=25, thread_limit=8):
                 break
             continue
         ai_fails = 0
+        text = add_cta(text, kind, done + 1)
         mid = publish_reply(token, user_id, text, rid)
         print(f"reply to @{rep.get('username')} -> {mid}: {text}")
         replied.add(rid)
