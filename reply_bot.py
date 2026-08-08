@@ -149,13 +149,19 @@ def publish_reply(token, user_id, text, reply_to):
         print(f"create reply failed: {r.text[:200]}")
         return None
     cid = r.json()["id"]
-    time.sleep(8)
-    p = requests.post(f"{API}/{user_id}/threads_publish", params={
-        "creation_id": cid, "access_token": token}, timeout=60)
-    if not p.ok:
+    # 텍스트 답글 컨테이너는 1~2초면 준비된다. 4초 대기 후 게시하고,
+    # 아직 처리 중이면 한 번 더 기다려 재시도 (8초 고정 대기보다 배치가 2배 빠름).
+    time.sleep(4)
+    for attempt in range(2):
+        p = requests.post(f"{API}/{user_id}/threads_publish", params={
+            "creation_id": cid, "access_token": token}, timeout=60)
+        if p.ok:
+            return p.json()["id"]
+        if attempt == 0:
+            time.sleep(6)
+            continue
         print(f"publish reply failed: {p.text[:200]}")
-        return None
-    return p.json()["id"]
+    return None
 
 
 def fetch_all(token, path, params, max_pages=20):
@@ -243,7 +249,8 @@ def main(kind, audit=False, cap=25, thread_limit=8, days=0):
         return
 
     done = 0
-    ai_fails = 0  # 연속 AI 실패 카운터 — 5회면 쿼터 소진으로 보고 실행 종료
+    ai_fails = 0   # 연속 AI 실패 카운터 (3회면 분당 한도로 보고 45초 대기)
+    stalls = 0     # 대기 횟수 — 5회 넘으면 일일 한도로 판단하고 종료
     for th, rep in pending:
         rid = rep["id"]
         text = gen_reply(th.get("text", ""), rep.get("text", "") or "",
@@ -254,13 +261,18 @@ def main(kind, audit=False, cap=25, thread_limit=8, days=0):
             replied.add(rid)
             continue
         if not text:
-            # AI 실패(쿼터 등) — 매크로 문구로 때우지 않는다 (2026-08-06 사용자 지시:
-            # "준비된 답변만 달면 안 되지"). 다음 실행에서 진짜 답변으로 재시도.
+            # AI 실패 — 매크로 문구로 때우지 않는다 (2026-08-06 사용자 지시:
+            # "준비된 답변만 달면 안 되지"). 429는 대부분 분당 한도라 잠깐 쉬면 풀린다.
             ai_fails += 1
-            print(f"skip {rid} (no ai reply, retry next run)")
-            if ai_fails >= 5:
-                print("AI 연속 실패 5회 — 쿼터 소진으로 보고 이번 실행 종료")
-                break
+            print(f"skip {rid} (no ai reply)")
+            if ai_fails >= 3:
+                stalls += 1
+                if stalls > 4:
+                    print("쿼터 회복 대기 5회 실패 — 일일 한도로 보고 종료")
+                    break
+                print(f"분당 한도 추정 — 45초 쉬고 재개 ({stalls}/4)")
+                time.sleep(45)
+                ai_fails = 0
             continue
         ai_fails = 0
         text = add_cta(text, kind, done + 1)
@@ -270,10 +282,13 @@ def main(kind, audit=False, cap=25, thread_limit=8, days=0):
         done += 1
         if done % 20 == 0:  # 진행 상황을 로그에 남겨 장시간 실행을 추적
             print(f"--- {done}/{len(pending)} 진행 중 ---")
-        time.sleep(6)
+        time.sleep(4)  # 답글 간 간격 (스팸 판정 회피용 최소 페이스)
         if done >= cap:
             print(f"이번 실행 상한 {cap}개 도달 — 나머지는 다음 실행에서")
             break
+    else:
+        if pending:
+            print("이번 대상 미답변을 모두 소화했습니다")
 
     if len(replied) != before:
         state_path.write_text(json.dumps(sorted(replied), ensure_ascii=False, indent=1),
