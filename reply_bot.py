@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """스레드 댓글 자동 답글 — 판사/연구소 계정.
 
-usage: python reply_bot.py judge   |   python reply_bot.py lab
+usage: python reply_bot.py <judge|lab> [--audit] [--cap=N] [--threads=N] [--days=N]
 env: THREADS_TOKEN_*, THREADS_USER_ID_*, GEMINI_API_KEY(선택)
 """
+import datetime
 import json
 import os
 import pathlib
