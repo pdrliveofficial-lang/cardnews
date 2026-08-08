@@ -173,10 +173,22 @@ def fetch_all(token, path, params, max_pages=20):
     return out
 
 
-def collect_pending(token, my_username, replied, thread_limit):
-    """미답변 댓글 목록을 수집. (원글, 댓글) 튜플 리스트."""
+def collect_pending(token, my_username, replied, thread_limit, days=0):
+    """미답변 댓글 목록을 수집. (원글, 댓글) 튜플 리스트.
+
+    days>0 이면 최근 N일 안에 올린 원글만 본다 — 스레드 API는 24시간당 250게시 한도라
+    노출이 끝난 옛 글에 한도를 쓰면 살아있는 글의 댓글을 놓친다 (2026-08-08 사용자 결정 A안).
+    """
     threads = fetch_all(token, "/me/threads",
                         {"fields": "id,text,timestamp", "limit": 100})[:thread_limit]
+    if days > 0:
+        cutoff = (datetime.datetime.now(datetime.timezone.utc)
+                  - datetime.timedelta(days=days)).isoformat()
+        fresh = [t for t in threads
+                 if (t.get("timestamp") or "").replace("+0000", "+00:00") >= cutoff]
+        if len(fresh) != len(threads):
+            print(f"  (최근 {days}일 필터: 원글 {len(threads)}개 중 {len(fresh)}개만 대상)")
+        threads = fresh
     pending, total = [], 0
     for th in threads:
         replies = fetch_all(token, f"/{th['id']}/replies",
@@ -189,7 +201,7 @@ def collect_pending(token, my_username, replied, thread_limit):
     return threads, total, pending
 
 
-def main(kind, audit=False, cap=25, thread_limit=8):
+def main(kind, audit=False, cap=25, thread_limit=8, days=0):
     suffix = "LAB" if kind == "lab" else "JUDGE"
     token = os.environ.get(f"THREADS_TOKEN_{suffix}", "")
     user_id = os.environ.get(f"THREADS_USER_ID_{suffix}", "")
@@ -205,7 +217,8 @@ def main(kind, audit=False, cap=25, thread_limit=8):
                   if state_path.exists() else [])
     before = len(replied)
 
-    threads, total, pending = collect_pending(token, my_username, replied, thread_limit)
+    threads, total, pending = collect_pending(token, my_username, replied,
+                                              thread_limit, days)
     print(f"[{kind}] 원글 {len(threads)}개 / 수집 댓글 {total}개 / 미답변 {len(pending)}개")
 
     if audit:
@@ -269,4 +282,5 @@ if __name__ == "__main__":
     main(args[0] if args else "judge",
          audit="--audit" in flags,
          cap=flag_val("cap", 25),
-         thread_limit=flag_val("threads", 8))
+         thread_limit=flag_val("threads", 8),
+         days=flag_val("days", 0))
