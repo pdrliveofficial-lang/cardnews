@@ -102,9 +102,12 @@ def gen_reply(post_text, comment_text, username, kind):
         f"[사연 원글]\n{post_text[:400]}\n\n"
         f"[{username}님의 댓글]\n{comment_text[:300]}\n\n답글:"
     )
-    # 429(무료 쿼터 소진)는 재시도해도 소용없다 — 즉시 쿼터가 넉넉한 보조 모델로 넘어간다.
-    # 5xx(일시 과부하)만 같은 모델에서 짧게 재시도.
-    for model in ("gemini-flash-latest", "gemini-flash-lite-latest"):
+    # 모델 순서 = 무료 티어 한도가 큰 쪽 먼저 (2026-08-08 로그 분석):
+    # flash-latest는 분당 한도가 낮아 거의 매 호출 429 → 헛호출로 일일 한도만 태웠다.
+    # flash-lite를 1순위로 두면 답글당 API 호출이 절반이 되어 처리량이 두 배가 된다.
+    # (짧은 한두 문장 한국어 답글에선 품질 차이가 실측상 없었다.)
+    # 429는 재시도해도 소용없으니 즉시 다음 모델로. 5xx만 짧게 재시도.
+    for model in ("gemini-flash-lite-latest", "gemini-flash-latest"):
         for attempt in range(2):
             try:
                 r = requests.post(
