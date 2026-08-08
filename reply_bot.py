@@ -217,6 +217,14 @@ def main(kind, audit=False, cap=25, thread_limit=8, days=0):
                   if state_path.exists() else [])
     before = len(replied)
 
+    # 스레드 API 게시 한도(24h 롤링) — 답글도 여기 포함되므로 남은 여력을 먼저 본다
+    lim = api_get(token, "/me/threads_publishing_limit",
+                  {"fields": "quota_usage,config"}) or {}
+    for d in (lim.get("data") or []):
+        cfg = d.get("config") or {}
+        print(f"[{kind}] API 게시 한도: {d.get('quota_usage')} / "
+              f"{cfg.get('quota_total')} (기간 {cfg.get('quota_duration')}초)")
+
     threads, total, pending = collect_pending(token, my_username, replied,
                                               thread_limit, days)
     print(f"[{kind}] 원글 {len(threads)}개 / 수집 댓글 {total}개 / 미답변 {len(pending)}개")
