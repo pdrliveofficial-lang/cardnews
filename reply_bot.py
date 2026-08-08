@@ -105,7 +105,42 @@ def publish_reply(token, user_id, text, reply_to):
     return p.json()["id"]
 
 
-def main(kind):
+def fetch_all(token, path, params, max_pages=20):
+    """커서 페이지네이션을 끝까지 따라가 전체 목록을 모은다.
+    (기본 응답은 첫 페이지뿐이라, 댓글 많은 글은 대부분이 안 보였다 — 2026-08-08 발견)"""
+    out, after, pages = [], None, 0
+    while pages < max_pages:
+        p = dict(params)
+        if after:
+            p["after"] = after
+        d = api_get(token, path, p)
+        if not d or "data" not in d:
+            break
+        out += d["data"]
+        after = (d.get("paging") or {}).get("cursors", {}).get("after")
+        if not after or not d["data"]:
+            break
+        pages += 1
+    return out
+
+
+def collect_pending(token, my_username, replied, thread_limit):
+    """미답변 댓글 목록을 수집. (원글, 댓글) 튜플 리스트."""
+    threads = fetch_all(token, "/me/threads",
+                        {"fields": "id,text,timestamp", "limit": 100})[:thread_limit]
+    pending, total = [], 0
+    for th in threads:
+        replies = fetch_all(token, f"/{th['id']}/replies",
+                            {"fields": "id,text,username", "limit": 100})
+        total += len(replies)
+        for rep in replies:
+            if rep["id"] in replied or rep.get("username", "") == my_username:
+                continue
+            pending.append((th, rep))
+    return threads, total, pending
+
+
+def main(kind, audit=False, cap=25, thread_limit=8):
     suffix = "LAB" if kind == "lab" else "JUDGE"
     token = os.environ.get(f"THREADS_TOKEN_{suffix}", "")
     user_id = os.environ.get(f"THREADS_USER_ID_{suffix}", "")
@@ -121,57 +156,67 @@ def main(kind):
                   if state_path.exists() else [])
     before = len(replied)
 
-    threads = api_get(token, "/me/threads", {"fields": "id,text", "limit": 8})
-    if not threads or "data" not in threads:
-        print("no threads")
+    threads, total, pending = collect_pending(token, my_username, replied, thread_limit)
+    print(f"[{kind}] 원글 {len(threads)}개 / 수집 댓글 {total}개 / 미답변 {len(pending)}개")
+
+    if audit:
+        by_post = {}
+        for th, rep in pending:
+            by_post.setdefault(th["id"], (th, []))[1].append(rep)
+        for th, reps in sorted(by_post.values(), key=lambda x: -len(x[1])):
+            hook = (th.get("text") or "").split("\n")[0][:40]
+            print(f"  미답변 {len(reps):3d}건 | {th.get('timestamp','')[:10]} | {hook}")
         return
 
     done = 0
     ai_fails = 0  # 연속 AI 실패 카운터 — 5회면 쿼터 소진으로 보고 실행 종료
-    for th in threads["data"]:
-        replies = api_get(token, f"/{th['id']}/replies",
-                          {"fields": "id,text,username"})
-        if not replies or "data" not in replies:
-            continue
-        for rep in replies["data"]:
-            rid = rep["id"]
-            if rid in replied:
-                continue
-            if rep.get("username", "") == my_username:
-                replied.add(rid)
-                continue
-            text = gen_reply(th.get("text", ""), rep.get("text", "") or "",
-                             rep.get("username", ""), kind)
-            if text == "SKIP":
-                # 욕설/정치 등 답글 부적합 — 기록하고 영구 제외
-                print(f"skip {rid} (ai judged SKIP)")
-                replied.add(rid)
-                continue
-            if not text:
-                # AI 실패(쿼터 등) — 매크로 문구로 때우지 않는다 (2026-08-06 사용자 지시:
-                # "준비된 답변만 달면 안 되지"). 다음 실행에서 진짜 답변으로 재시도.
-                ai_fails += 1
-                print(f"skip {rid} (no ai reply, retry next run)")
-                if ai_fails >= 5:
-                    print("AI 연속 실패 5회 — 쿼터 소진으로 보고 이번 실행 종료")
-                    break
-                continue
-            ai_fails = 0
-            mid = publish_reply(token, user_id, text, rid)
-            print(f"reply to @{rep.get('username')} -> {mid}: {text}")
+    for th, rep in pending:
+        rid = rep["id"]
+        text = gen_reply(th.get("text", ""), rep.get("text", "") or "",
+                         rep.get("username", ""), kind)
+        if text == "SKIP":
+            # 욕설/정치 등 답글 부적합 — 기록하고 영구 제외
+            print(f"skip {rid} (ai judged SKIP)")
             replied.add(rid)
-            done += 1
-            time.sleep(6)
-            if done >= 25:      # 한 번 실행에 25개 상한 (스팸 방지)
+            continue
+        if not text:
+            # AI 실패(쿼터 등) — 매크로 문구로 때우지 않는다 (2026-08-06 사용자 지시:
+            # "준비된 답변만 달면 안 되지"). 다음 실행에서 진짜 답변으로 재시도.
+            ai_fails += 1
+            print(f"skip {rid} (no ai reply, retry next run)")
+            if ai_fails >= 5:
+                print("AI 연속 실패 5회 — 쿼터 소진으로 보고 이번 실행 종료")
                 break
-        if done >= 25 or ai_fails >= 5:
+            continue
+        ai_fails = 0
+        mid = publish_reply(token, user_id, text, rid)
+        print(f"reply to @{rep.get('username')} -> {mid}: {text}")
+        replied.add(rid)
+        done += 1
+        if done % 20 == 0:  # 진행 상황을 로그에 남겨 장시간 실행을 추적
+            print(f"--- {done}/{len(pending)} 진행 중 ---")
+        time.sleep(6)
+        if done >= cap:
+            print(f"이번 실행 상한 {cap}개 도달 — 나머지는 다음 실행에서")
             break
 
     if len(replied) != before:
         state_path.write_text(json.dumps(sorted(replied), ensure_ascii=False, indent=1),
                               encoding="utf-8")
-    print(f"replied {done} comments")
+    print(f"replied {done} comments (남은 미답변 약 {max(len(pending) - done, 0)}개)")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "judge")
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = [a for a in sys.argv[1:] if a.startswith("--")]
+
+    def flag_val(name, default):
+        for f in flags:
+            if f.startswith(f"--{name}="):
+                return int(f.split("=", 1)[1])
+        return default
+
+    main(args[0] if args else "judge",
+         audit="--audit" in flags,
+         cap=flag_val("cap", 25),
+         thread_limit=flag_val("threads", 8))

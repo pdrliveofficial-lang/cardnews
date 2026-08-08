@@ -2,6 +2,23 @@ name: reply-bot
 
 on:
   workflow_dispatch:
+    inputs:
+      only:
+        description: "특정 계정만 (judge | lab), 비우면 둘 다"
+        required: false
+        default: ""
+      audit:
+        description: "감사만 — 미답변 건수만 세고 답글 안 담"
+        type: boolean
+        default: false
+      cap:
+        description: "이번 실행 답글 상한 (기본 25, 밀린 물량 소화 시 크게)"
+        required: false
+        default: "25"
+      threads:
+        description: "훑을 원글 개수 (기본 8)"
+        required: false
+        default: "8"
 
 permissions:
   contents: write
@@ -21,20 +38,28 @@ jobs:
       - run: pip install requests
 
       - name: Reply — judge
+        if: inputs.only != 'lab'
         continue-on-error: true
         env:
           THREADS_TOKEN_JUDGE: ${{ secrets.THREADS_TOKEN_JUDGE }}
           THREADS_USER_ID_JUDGE: ${{ secrets.THREADS_USER_ID_JUDGE }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python reply_bot.py judge
+        run: |
+          python reply_bot.py judge \
+            ${{ inputs.audit == true && '--audit' || '' }} \
+            --cap=${{ inputs.cap || 25 }} --threads=${{ inputs.threads || 8 }}
 
       - name: Reply — lab
+        if: inputs.only != 'judge'
         continue-on-error: true
         env:
           THREADS_TOKEN_LAB: ${{ secrets.THREADS_TOKEN_LAB }}
           THREADS_USER_ID_LAB: ${{ secrets.THREADS_USER_ID_LAB }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python reply_bot.py lab
+        run: |
+          python reply_bot.py lab \
+            ${{ inputs.audit == true && '--audit' || '' }} \
+            --cap=${{ inputs.cap || 25 }} --threads=${{ inputs.threads || 8 }}
 
       - name: Commit replied state
         run: |
