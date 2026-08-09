@@ -29,6 +29,10 @@ Claude Code에 아래 한 문장만 입력하면 됩니다:
   - **publish-reel.yml이 `reel-toon.mp4` 우선 사용** (reel.mp4 없을 때 복사 후 발행) — 재고: case-012~016, lab-008~012 커밋됨(~8/8까지 웹툰판으로 나감). 소스 PNG는 용량 문제로 .gitignore (로컬 D:에만 보관).
   - ⚠️ ffmpeg 함정: PNG 입력에 `-framerate 30` 명시 필수 — 기본 25fps가 zoompan(fps=30)과 어긋나면 세그먼트가 짧아져 xfade 체인이 무너지고 영상이 3초에서 얼어붙음(2026-08-04 실사고).
   - 정시 발행: Windows 작업 `cardnews-reel-judge`(18:00) / `cardnews-reel-lab`(21:10) → `%USERPROFILE%\.cardnews\reel-*.cmd` dispatch.
+- **🎬 움직이는 웹툰 릴스 (2026-08-09 실험)**: 정지컷 대신 클링으로 실제 움직이는 영상 + 한국어 나레이션. **상세는 `REEL_KLING.md` 참조** (무료 조건·사고 기록·이어받는 법 전부 거기 있음).
+  - 시안 완성: `output/lab-024/reel-kling.mp4` (빈 축의금 봉투 사건, 29초). 신규 사연 `stories/lab-024.json`도 생성됨.
+  - 핵심: 클링 2.5 Turbo에 **스타트 프레임만** 넣고 720p+Unlimited면 무료. 엔드 프레임을 넣으면 1080p 강제 전환되며 과금된다.
+  - ⚠️ **미완 6편**(case-017~019, lab-011~013): 프레임·나레이션은 준비 완료, 클립 15개만 재생성하면 됨. 표는 REEL_KLING.md에.
 - **릴스 자동화 (2026-08-04 구축)**: 낮 캐러셀과 같은 사연을 저녁에 릴스로 재발행해 비팔로워 도달 확보 (정적 카드는 비팔로워에게 안 뿌려지는 문제의 처방 ①).
   - `make_reel.py`: output/<slug>/ 카드 PNG → 9:16 mp4 (블러 배경+중앙 카드+표지 줌인+0.4s 페이드, 카드 7장≈17초). ffmpeg 필요 (Actions에서 apt 설치).
   - BGM: `assets/bgm/judge.m4a`(재판 긴장 로파이)·`lab.m4a`(마림바) — 힉스필드 sonilo_music 생성, 저작권 프리.
