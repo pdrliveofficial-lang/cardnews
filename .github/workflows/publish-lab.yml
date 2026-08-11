@@ -59,6 +59,20 @@ jobs:
           THREADS_USER_ID_LAB: ${{ secrets.THREADS_USER_ID_LAB }}
         run: python post_threads.py "$(cat last_slug.txt)"
 
+
+      - name: Rollback claim on failure (재시도 가능하게)
+        if: failure() && steps.claim.outputs.r == 'CLAIMED'
+        run: |
+          R=$(python unclaim.py state-lab.json)
+          echo "rollback: $R"
+          if [ "$R" = "UNCLAIMED" ]; then
+            git config user.name "cardnews-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git add state-lab.json
+            git commit -m "rollback claim (발행 실패) [skip ci]" || true
+            git pull --rebase origin main && git push || true
+          fi
+
       - name: Commit state
         if: steps.claim.outputs.r == 'CLAIMED'
         run: |
