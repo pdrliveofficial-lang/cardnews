@@ -52,7 +52,9 @@ jobs:
         run: python upload_instagram.py
 
       - name: Cross-post to Threads
-        if: steps.claim.outputs.r == 'CLAIMED'
+        # 🔁 같은 사연이 하루 3번(캐러셀·릴스·스레드) 반복되던 구조 정리 (2026-08-12)
+        #    스레드는 pool 아침·저녁 2편으로 충분. 되살리려면 if: false 제거
+        if: false
         continue-on-error: true
         env:
           THREADS_TOKEN_JUDGE: ${{ secrets.THREADS_TOKEN_JUDGE }}
