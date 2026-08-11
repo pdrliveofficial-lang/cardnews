@@ -55,6 +55,8 @@ jobs:
             --days=${{ inputs.days || 3 }}
 
       - name: Reply — lab
+        # 🛑 잘잘못연구소 운영 중단 (2026-08-12) — 되살리려면 if: false 제거
+        if: false
         if: inputs.only != 'judge'
         continue-on-error: true
         env:

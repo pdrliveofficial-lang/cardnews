@@ -12,6 +12,8 @@ concurrency:
 
 jobs:
   publish:
+    # 🛑 잘잘못연구소 운영 중단 (2026-08-12 사장님 결정) — 되살리려면 이 조건을 지운다
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
