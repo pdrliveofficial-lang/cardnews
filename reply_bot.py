@@ -151,7 +151,7 @@ def publish_reply(token, user_id, text, reply_to):
     cid = r.json()["id"]
     # 텍스트 답글 컨테이너는 1~2초면 준비된다. 4초 대기 후 게시하고,
     # 아직 처리 중이면 한 번 더 기다려 재시도 (8초 고정 대기보다 배치가 2배 빠름).
-    time.sleep(4)
+    time.sleep(12)  # 답글 간격 — 스팸 판정 방지 (2026-08-12 사고 후 확대)
     for attempt in range(2):
         p = requests.post(f"{API}/{user_id}/threads_publish", params={
             "creation_id": cid, "access_token": token}, timeout=60)
@@ -211,7 +211,7 @@ def collect_pending(token, my_username, replied, thread_limit, days=0):
     return threads, total, pending
 
 
-def main(kind, audit=False, cap=25, thread_limit=8, days=0):
+def main(kind, audit=False, cap=15, thread_limit=8, days=0):
     suffix = "LAB" if kind == "lab" else "JUDGE"
     token = os.environ.get(f"THREADS_TOKEN_{suffix}", "")
     user_id = os.environ.get(f"THREADS_USER_ID_{suffix}", "")
