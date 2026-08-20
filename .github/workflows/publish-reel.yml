@@ -45,9 +45,10 @@ jobs:
               h = datetime.datetime.utcnow().hour
               acct = "lab" if h >= 11 else "judge"
           # 🛑 잘잘못연구소 운영 중단 (2026-08-12 사장님 결정) — 되살리려면 이 블록 삭제
-          if acct == "lab":
+          # 🛑 판사·연구소 모두 운영 중단 (2026-08-21) — cardnews 전체 휴면
+          if acct in ("lab", "judge"):
               print("go=skip")
-              print("reason=연구소 운영 중단")
+              print("reason=cardnews 운영 중단")
               raise SystemExit(0)
           state_file = "state-lab.json" if acct == "lab" else "state.json"
           st = json.load(open(state_file))

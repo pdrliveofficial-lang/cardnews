@@ -46,6 +46,8 @@ jobs:
           echo "slot=$S (KST hour=$H)"
 
       - name: Judge extra post
+        # 🛑 댓글판사 운영 중단 (2026-08-21 사장님 결정) — 되살리려면 if: false 제거
+        if: false
         continue-on-error: true
         env:
           THREADS_TOKEN_JUDGE: ${{ secrets.THREADS_TOKEN_JUDGE }}

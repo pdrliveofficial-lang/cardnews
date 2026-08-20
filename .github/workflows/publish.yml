@@ -12,6 +12,8 @@ concurrency:
 
 jobs:
   publish:
+    # 🛑 댓글판사 운영 중단 (2026-08-21 사장님 결정) — 되살리려면 이 조건 삭제
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
