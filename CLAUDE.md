@@ -118,7 +118,7 @@ stories/case-NNN.json  →  python render.py stories/case-NNN.json  →  output/
   - **중단 방식**: 자산은 그대로 두고 **발행만 정지**했다 (`if: false` 가드). 되살리려면 각 파일의 `🛑` 주석 블록만 지우면 즉시 복구된다.
     - `publish-lab.yml` 잡 전체 / `threads-extra.yml` Lab 스텝 / `reply.yml` lab 답글 / `publish-reel.yml` lab 슬롯 스킵
   - **남아 있는 자산**(삭제 금지): `stories/lab-001~024.json`, `output/lab-*`, `threads_pool_lab.json`(미발행 20편), `template-lab.html`, `assets/bgm/lab.m4a`, `state-lab.json`
-  - **cron-job.org 트리거 2개(19:03 연구소 캐러셀 / 21:08 연구소 릴스)는 그대로 발사되지만 워크플로가 즉시 종료**되므로 무해하다. 완전 정리하려면 콘솔에서 두 잡을 Disable.
+  - **cron-job.org 트리거는 2026-09-08자로 전량 삭제됨** (판사·연구소 7개). 되살리려면 콘솔에서 새로 만들어야 한다 — 기존 threads-bot 잡을 Clone 후 URL·crontab만 수정하면 된다.
   - **미발행 lab 콘텐츠 재활용 여지**: lab 소재(직장·경조사·일상 돈 문제)는 판사 소재(연애·결혼)와 겹치지 않는다. 판사 소재 범위를 넓힐 거라면 `threads_pool_lab.json`과 `stories/lab-011~024`를 판사 톤으로 옮겨 쓰는 게 가장 싼 충전 방법이다.
 
 - **🚨 2026-08-12 계정 도달 붕괴 사고 (원인·조치 기록 — 반드시 숙지)**
