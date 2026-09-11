@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>cardnews render — wedding</title>
+<style>
+  /* 결혼준비 정보 카드 (@serendi_pity_)
+     판사/연구소 템플릿과 달리 "사연·판결"이 아니라 "정리된 자료" 톤.
+     기존 인스타의 흑백 빈티지 그리드와 나란히 놓여도 안 튀도록
+     아이보리 + 먹색 + 황동 단색 악센트로 간다. */
+  :root{
+    --ink:#1C1A17; --ivory:#F4F0E9; --paper:#FBF9F5;
+    --brass:#96763F; --dim:#8A8073; --line:#D9D2C6; --line-dark:#3A352E;
+    --kr:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    --serif:'Nanum Myeongjo','AppleMyungjo','Batang',serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ width:1080px; height:1350px; overflow:hidden; font-family:var(--kr); }
+
+  .card{ width:1080px; height:1350px; background:var(--paper); color:var(--ink);
+         position:relative; overflow:hidden; }
+  .card .inner{ position:absolute; inset:0; padding:92px 92px 82px; display:flex; flex-direction:column; }
+
+  /* 머리말 */
+  .brand{ display:flex; align-items:baseline; justify-content:space-between; }
+  .brand .logo{ font-family:var(--serif); font-size:40px; letter-spacing:.26em; }
+  .brand .no{ font-size:32px; letter-spacing:.16em; color:var(--dim); font-weight:600; }
+  .rule{ border:0; border-top:2px solid var(--line); margin:40px 0 0; width:100%; }
+
+  .mid{ flex:1; display:flex; flex-direction:column; justify-content:center; min-height:0; }
+  .label{ font-family:var(--serif); color:var(--brass); font-size:36px; letter-spacing:.26em; margin-bottom:44px; }
+  .pgnum{ margin-top:auto; align-self:center; color:var(--dim); font-family:var(--serif);
+          font-size:32px; letter-spacing:.2em; padding-top:36px; }
+
+  /* 표지 */
+  /* 인스타 그리드는 4:5 이미지를 1:1 중앙 크롭으로 보여준다 (위아래 135px씩 잘림).
+     표지는 그리드에서도 로고와 도장이 보이도록 안쪽으로 더 들여쓴다. */
+  .card.cover .inner{ padding-top:158px; padding-bottom:152px; }
+  .card.cover{ background:var(--ink); color:var(--ivory); }
+  .card.cover .brand .no{ color:#9C9487; }
+  .card.cover .rule{ border-top-color:var(--line-dark); }
+  .cover-mid{ flex:1; display:flex; flex-direction:column; justify-content:center;
+              min-height:0; padding-bottom:44px; }
+  .cover-tag{ font-family:var(--serif); color:var(--brass); font-size:38px; letter-spacing:.3em;
+              margin:0 0 46px; }
+  .cover h3{ font-size:104px; line-height:1.3; font-weight:800; letter-spacing:-.03em;
+             margin:0; word-break:keep-all; }
+  .cover em{ color:var(--brass); font-style:normal; }
+  .cover-foot{ flex:none; display:flex; align-items:center; justify-content:space-between; }
+  .cover-foot .swipe{ color:#9C9487; font-size:38px; font-weight:600; line-height:1.2; }
+  .cover-foot .seal{ font-family:var(--serif); color:var(--brass); border:4px solid var(--brass);
+                     padding:15px 28px; font-size:34px; letter-spacing:.24em; line-height:1.2; }
+
+  /* 번호 목록 */
+  .points{ display:flex; flex-direction:column; gap:40px; }
+  .pt{ display:flex; gap:34px; align-items:flex-start; }
+  .pt .n{ flex:none; width:74px; height:74px; border-radius:50%; background:var(--ink); color:var(--paper);
+          font-family:var(--serif); font-size:40px; display:flex; align-items:center; justify-content:center; margin-top:4px; }
+  .pt .body{ min-width:0; }
+  .pt .t{ display:block; font-size:58px; font-weight:800; line-height:1.36; letter-spacing:-.02em; word-break:keep-all; }
+  .pt .d{ display:block; font-size:42px; line-height:1.56; color:#5A544B; margin-top:12px; word-break:keep-all; font-weight:500; }
+  .pt .d b{ color:var(--ink); font-weight:800; }
+
+  /* 가격 표 */
+  .price{ display:flex; flex-direction:column; }
+  .row{ display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:0 28px;
+        padding:38px 0; border-bottom:2px solid var(--line); }
+  .row:last-child{ border-bottom:0; }
+  .row .item{ flex:1 1 auto; font-size:54px; font-weight:800; letter-spacing:-.02em; word-break:keep-all; }
+  .row .range{ flex:0 0 auto; font-size:54px; font-weight:800; color:var(--brass);
+               white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .row .note{ flex:0 0 100%; font-size:38px; line-height:1.5; color:#5A544B; margin-top:14px;
+              font-weight:500; word-break:keep-all; }
+
+  /* 경고 */
+  .warn-box{ border:5px solid var(--ink); padding:64px 58px; }
+  .warn-box .wt{ font-size:64px; font-weight:800; line-height:1.4; letter-spacing:-.02em;
+                 word-break:keep-all; margin-bottom:34px; }
+  .warn-box .wb{ font-size:46px; line-height:1.6; color:#3E3931; word-break:keep-all; font-weight:500; }
+  .warn-box .wb b{ color:var(--brass); font-weight:800; }
+
+  /* 한 줄 핵심 */
+  .tip{ text-align:center; }
+  .tip .big{ font-family:var(--serif); font-size:82px; line-height:1.42; letter-spacing:-.02em;
+             word-break:keep-all; }
+  .tip .big em{ color:var(--brass); font-style:normal; }
+  .tip .sub{ font-size:44px; line-height:1.6; color:#5A544B; margin-top:48px;
+             word-break:keep-all; font-weight:500; }
+
+  /* 마지막 카드 */
+  .card.cta{ background:var(--ink); color:var(--ivory); }
+  .card.cta .brand .no{ color:#9C9487; }
+  .card.cta .rule{ border-top-color:var(--line-dark); }
+  .cta-title{ font-size:84px; font-weight:800; line-height:1.36; letter-spacing:-.025em; word-break:keep-all; }
+  .cta-title em{ color:var(--brass); font-style:normal; }
+  .cta-body{ font-size:48px; line-height:1.62; color:#C6BFB2; margin-top:46px; word-break:keep-all; font-weight:500; }
+  .cta-body b{ color:var(--ivory); font-weight:800; }
+  .cta-foot{ margin-top:auto; text-align:center; font-family:var(--serif); color:var(--brass);
+             font-size:44px; letter-spacing:.12em; line-height:1.5; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script id="data" type="application/json">/*__DATA__*/null</script>
+<script>
+  const story = JSON.parse(document.getElementById('data').textContent.replace('/*__DATA__*/',''));
+  if (story.accent) document.documentElement.style.setProperty('--brass', story.accent);
+  const idx = parseInt(new URLSearchParams(location.search).get('card') || '0', 10);
+  const c = story.cards[idx];
+  const total = story.cards.length;
+  const noLabel = story.no_label || '정리';
+  const brand = `<div class="brand"><span class="logo">${story.brand}</span>`
+              + `<span class="no">${noLabel} NO.${story.case_no}</span></div><hr class="rule">`;
+  const pg = `<div class="pgnum">${idx + 1} / ${total}</div>`;
+  const head = (label) => label ? `<div class="label">${label}</div>` : '';
+  let html = '';
+
+  if (c.type === 'cover') {
+    html = `<div class="card cover"><div class="inner">${brand}
+      <div class="cover-mid"><div class="cover-tag">${c.tag}</div><h3>${c.title}</h3></div>
+      <div class="cover-foot"><span class="swipe">${story.swipe_text || '넘겨서 보기 →'}</span>
+      ${c.seal ? `<span class="seal">${c.seal}</span>` : ''}</div></div></div>`;
+
+  } else if (c.type === 'points') {
+    html = `<div class="card"><div class="inner">${brand}<div class="mid">${head(c.label)}
+      <div class="points">${c.items.map((it, i) => `<div class="pt">
+        <span class="n">${it.n || (i + 1)}</span>
+        <span class="body"><span class="t">${it.t}</span>${it.d ? `<span class="d">${it.d}</span>` : ''}</span>
+      </div>`).join('')}</div></div>${pg}</div></div>`;
+
+  } else if (c.type === 'price') {
+    html = `<div class="card"><div class="inner">${brand}<div class="mid">${head(c.label)}
+      <div class="price">${c.rows.map(r => `<div class="row">
+        <span class="item">${r.item}</span><span class="range">${r.range}</span>
+        ${r.note ? `<span class="note">${r.note}</span>` : ''}
+      </div>`).join('')}</div></div>${pg}</div></div>`;
+
+  } else if (c.type === 'warn') {
+    html = `<div class="card"><div class="inner">${brand}<div class="mid">${head(c.label)}
+      <div class="warn-box"><div class="wt">${c.title}</div><div class="wb">${c.body}</div></div>
+      </div>${pg}</div></div>`;
+
+  } else if (c.type === 'tip') {
+    html = `<div class="card"><div class="inner">${brand}<div class="mid">${head(c.label)}
+      <div class="tip"><div class="big">${c.big}</div>
+      ${c.sub ? `<div class="sub">${c.sub}</div>` : ''}</div></div>${pg}</div></div>`;
+
+  } else if (c.type === 'cta') {
+    html = `<div class="card cta"><div class="inner">${brand}<div class="mid">
+      <div class="cta-title">${c.title}</div><div class="cta-body">${c.body}</div></div>
+      <div class="cta-foot">${c.foot}</div></div></div>`;
+  }
+
+  document.getElementById('root').innerHTML = html;
+</script>
+</body>
+</html>

@@ -11,12 +11,6 @@ import sys
 
 ROOT = pathlib.Path(__file__).parent
 
-CARD_W, CARD_H = 1080, 1350
-# 크롬이 --window-size 를 그대로 뷰포트로 주지 않는다. 2026-09 크롬 업데이트 이후
-# 실제 뷰포트가 87px쯤 짧아져서 카드 아래에 흰 띠가 생겼다 (기존 판사/연구소
-# 템플릿도 지금 다시 렌더링하면 똑같이 깨진다). 넉넉히 띄운 뒤 정확히 잘라낸다.
-SHOT_H = 1500
-
 # 크롬 실행 파일 — 맥/윈도우 겸용 (환경변수 CHROME_BIN으로 강제 지정 가능)
 _CANDIDATES = [
     os.environ.get("CHROME_BIN", ""),
@@ -28,30 +22,12 @@ _CANDIDATES = [
 CHROME = next((c for c in _CANDIDATES if c and pathlib.Path(c).exists()), _CANDIDATES[2])
 
 
-def crop_to_card(png):
-    """스크린샷을 카드 크기(1080x1350)로 잘라낸다. Pillow가 없으면 경고만 남기고 넘어간다."""
-    try:
-        from PIL import Image
-    except ImportError:
-        print("  ! Pillow 없음 — 자르기 건너뜀 (pip install pillow)")
-        return
-    with Image.open(png) as im:
-        if im.size == (CARD_W, CARD_H):
-            return
-        if im.size[1] < CARD_H or im.size[0] < CARD_W:
-            print(f"  ! 스크린샷 {im.size} 가 카드보다 작다 — SHOT_H를 키울 것")
-            return
-        im.convert("RGB").crop((0, 0, CARD_W, CARD_H)).save(png)
-
-
 def main(story_path):
     story_file = pathlib.Path(story_path)
     story = json.loads(story_file.read_text(encoding="utf-8"))
     slug = story.get("slug", story_file.stem)
 
-    tpl_name = ("template-wedding.html" if slug.startswith("wed")
-                else "template-lab.html" if slug.startswith("lab")
-                else "template.html")
+    tpl_name = "template-lab.html" if slug.startswith("lab") else "template.html"
     template = (ROOT / tpl_name).read_text(encoding="utf-8")
     built = template.replace(
         "/*__DATA__*/null", json.dumps(story, ensure_ascii=False)
@@ -69,11 +45,10 @@ def main(story_path):
         cmd = [
             CHROME, "--headless=new", "--disable-gpu",
             "--force-device-scale-factor=1", "--hide-scrollbars",
-            f"--window-size={CARD_W},{SHOT_H}", "--virtual-time-budget=8000",
+            "--window-size=1080,1350", "--virtual-time-budget=8000",
             f"--screenshot={png}", url,
         ]
         subprocess.run(cmd, check=True, capture_output=True)
-        crop_to_card(png)
         print(f"[{i + 1}/{n}] {png.name} done")
 
     caption_path = out_dir / "caption.txt"
