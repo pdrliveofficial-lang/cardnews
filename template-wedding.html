@@ -60,6 +60,16 @@
   .pt .body{ min-width:0; }
   .pt .t{ display:block; font-size:58px; font-weight:800; line-height:1.36; letter-spacing:-.02em; word-break:keep-all; }
   .pt .d{ display:block; font-size:42px; line-height:1.56; color:#5A544B; margin-top:12px; word-break:keep-all; font-weight:500; }
+  /* 항목이 5개 이상이면 4개 기준 크기로는 카드를 넘친다 (로고·페이지번호와 겹쳤다).
+     칸 수에 따라 한 단계씩 줄인다. (2026-09-14) */
+  .points.dense{ gap:30px; }
+  .points.dense .pt .n{ width:62px; height:62px; font-size:34px; }
+  .points.dense .pt .t{ font-size:50px; }
+  .points.dense .pt .d{ font-size:37px; line-height:1.48; margin-top:9px; }
+  .points.denser{ gap:24px; }
+  .points.denser .pt .n{ width:56px; height:56px; font-size:30px; }
+  .points.denser .pt .t{ font-size:44px; }
+  .points.denser .pt .d{ font-size:33px; line-height:1.44; margin-top:7px; }
   .pt .d b{ color:var(--ink); font-weight:800; }
 
   /* 가격 표 */
@@ -123,8 +133,9 @@
       ${c.seal ? `<span class="seal">${c.seal}</span>` : ''}</div></div></div>`;
 
   } else if (c.type === 'points') {
+    const density = c.items.length >= 6 ? ' denser' : c.items.length >= 5 ? ' dense' : '';
     html = `<div class="card"><div class="inner">${brand}<div class="mid">${head(c.label)}
-      <div class="points">${c.items.map((it, i) => `<div class="pt">
+      <div class="points${density}">${c.items.map((it, i) => `<div class="pt">
         <span class="n">${it.n || (i + 1)}</span>
         <span class="body"><span class="t">${it.t}</span>${it.d ? `<span class="d">${it.d}</span>` : ''}</span>
       </div>`).join('')}</div></div>${pg}</div></div>`;
